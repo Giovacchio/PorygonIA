@@ -1,0 +1,2674 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pokémon VGC Trainer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .animate-spin { animation: spin 1s linear infinite; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script>
+    /* localStorage shim — drop-in per window.storage dell'artifact */
+    window.storage = {
+      get: async (key) => {
+        try { const v = localStorage.getItem(key); return v !== null ? { value: v } : null; }
+        catch { return null; }
+      },
+      set: async (key, value) => {
+        try { localStorage.setItem(key, value); return true; } catch { return null; }
+      },
+      delete: async (key) => {
+        try { localStorage.removeItem(key); return true; } catch { return null; }
+      },
+    };
+  </script>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef } = React;
+
+    /* ============================================================
+       ICONS — Lucide SVG inline (sostituisce lucide-react)
+       ============================================================ */
+    const _ico = (size, sw, cls, style, children) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" strokeWidth={sw} strokeLinecap="round"
+           strokeLinejoin="round" className={cls||''} style={style}>
+        {children}
+      </svg>
+    );
+    function Search({size=24,strokeWidth=2,className,style}){return _ico(size,strokeWidth,className,style,<><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></>);}
+    function Plus({size=24,strokeWidth=2,className,style}){return _ico(size,strokeWidth,className,style,<path d="M5 12h14M12 5v14"/>);}
+    function X({size=24,strokeWidth=2,className,style}){return _ico(size,strokeWidth,className,style,<path d="M18 6 6 18M6 6l12 12"/>);}
+    function Zap({size=24,strokeWidth=2,className,style}){return _ico(size,strokeWidth,className,style,<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>);}
+    function Shield({size=24,strokeWidth=2,className,style}){return _ico(size,strokeWidth,className,style,<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>);}
+    function Swords({size=24,strokeWidth=2,className,style}){return _ico(size,strokeWidth,className,style,<><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" x2="19" y1="19" y2="13"/><line x1="16" x2="20" y1="16" y2="20"/><line x1="19" x2="21" y1="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" x2="9" y1="11" y2="15"/></>);}
+    function ChevronRight({size=24,strokeWidth=2,className,style}){return _ico(size,strokeWidth,className,style,<path d="m9 18 6-6-6-6"/>);}
+    function ChevronLeft({size=24,strokeWidth=2,className,style}){return _ico(size,strokeWidth,className,style,<path d="m15 18-6-6 6-6"/>);}
+    function Trash2({size=24,strokeWidth=2,className,style}){return _ico(size,strokeWidth,className,style,<><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></>);}
+    function Sparkles({size=24,strokeWidth=2,className,style}){return _ico(size,strokeWidth,className,style,<><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4M22 5h-4M4 17v2M5 18H3"/></>);}
+    function AlertTriangle({size=24,strokeWidth=2,className,style}){return _ico(size,strokeWidth,className,style,<><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></>);}
+    function Loader2({size=24,strokeWidth=2,className,style}){return _ico(size,strokeWidth,className,style,<path d="M21 12a9 9 0 1 1-6.219-8.56"/>);}
+    function Target({size=24,strokeWidth=2,className,style}){return _ico(size,strokeWidth,className,style,<><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></>);}
+    function Gauge({size=24,strokeWidth=2,className,style}){return _ico(size,strokeWidth,className,style,<><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></>);}
+    function Calculator({size=24,strokeWidth=2,className,style}){return _ico(size,strokeWidth,className,style,<><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01M12 10h.01M8 10h.01M12 14h.01M8 14h.01M12 18h.01M8 18h.01"/></>);}
+    function Flame({size=24,strokeWidth=2,className,style}){return _ico(size,strokeWidth,className,style,<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>);}
+    function Droplet({size=24,strokeWidth=2,className,style}){return _ico(size,strokeWidth,className,style,<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>);}
+    function Sun({size=24,strokeWidth=2,className,style}){return _ico(size,strokeWidth,className,style,<><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></>);}
+    function Snowflake({size=24,strokeWidth=2,className,style}){return _ico(size,strokeWidth,className,style,<><line x1="2" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="22"/><path d="m20 16-4-4 4-4M4 8l4 4-4 4M16 4l-4 4-4-4M8 20l4-4 4 4"/></>);}
+    function Cloud({size=24,strokeWidth=2,className,style}){return _ico(size,strokeWidth,className,style,<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/>);}
+
+
+/* ============================================================
+   FONTS & STYLES — injected once
+   ============================================================ */
+const FONT_STYLES = `
+  @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+  .font-display { font-family: 'Instrument Serif', serif; font-style: italic; letter-spacing: -0.02em; }
+  .font-body { font-family: 'Geist', system-ui, sans-serif; letter-spacing: -0.005em; }
+  .font-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+  .noise-bg {
+    background-color: #0a0908;
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(255,184,0,0.04) 0%, transparent 40%),
+      radial-gradient(circle at 80% 90%, rgba(210,70,70,0.04) 0%, transparent 40%);
+  }
+  .noise-bg::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; opacity: 0.04; z-index: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence baseFrequency='0.9'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+
+  .scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+  .scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar::-webkit-scrollbar-thumb { background: #2a2724; border-radius: 3px; }
+
+  @keyframes pulse-glow { 0%,100% { opacity: 0.5 } 50% { opacity: 1 } }
+  .pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+
+  @keyframes fade-up { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: translateY(0) } }
+  .fade-up { animation: fade-up 0.4s ease-out backwards; }
+`;
+
+/* ============================================================
+   TYPE DATA
+   ============================================================ */
+const TYPES = ['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy'];
+
+const TYPE_COLORS = {
+  normal: '#9099a1', fire: '#f57d3a', water: '#4a90dd', electric: '#f6c744',
+  grass: '#64b95e', ice: '#7cd1d7', fighting: '#c7332f', poison: '#a044a0',
+  ground: '#d4a84b', flying: '#9facde', psychic: '#ed5e8c', bug: '#a4b735',
+  rock: '#b7a24e', ghost: '#6a5ba0', dragon: '#5a4ad1', dark: '#4f4239',
+  steel: '#6b8a9f', fairy: '#ea9fc6'
+};
+
+// Attacker -> Defender: only the non-1 multipliers
+const TYPE_CHART = {
+  normal:   { rock: 0.5, ghost: 0, steel: 0.5 },
+  fire:     { fire: 0.5, water: 0.5, grass: 2, ice: 2, bug: 2, rock: 0.5, dragon: 0.5, steel: 2 },
+  water:    { fire: 2, water: 0.5, grass: 0.5, ground: 2, rock: 2, dragon: 0.5 },
+  electric: { water: 2, electric: 0.5, grass: 0.5, ground: 0, flying: 2, dragon: 0.5 },
+  grass:    { fire: 0.5, water: 2, grass: 0.5, poison: 0.5, ground: 2, flying: 0.5, bug: 0.5, rock: 2, dragon: 0.5, steel: 0.5 },
+  ice:      { fire: 0.5, water: 0.5, grass: 2, ice: 0.5, ground: 2, flying: 2, dragon: 2, steel: 0.5 },
+  fighting: { normal: 2, ice: 2, poison: 0.5, flying: 0.5, psychic: 0.5, bug: 0.5, rock: 2, ghost: 0, dark: 2, steel: 2, fairy: 0.5 },
+  poison:   { grass: 2, poison: 0.5, ground: 0.5, rock: 0.5, ghost: 0.5, steel: 0, fairy: 2 },
+  ground:   { fire: 2, electric: 2, grass: 0.5, poison: 2, flying: 0, bug: 0.5, rock: 2, steel: 2 },
+  flying:   { electric: 0.5, grass: 2, fighting: 2, bug: 2, rock: 0.5, steel: 0.5 },
+  psychic:  { fighting: 2, poison: 2, psychic: 0.5, dark: 0, steel: 0.5 },
+  bug:      { fire: 0.5, grass: 2, fighting: 0.5, poison: 0.5, flying: 0.5, psychic: 2, ghost: 0.5, dark: 2, steel: 0.5, fairy: 0.5 },
+  rock:     { fire: 2, ice: 2, fighting: 0.5, ground: 0.5, flying: 2, bug: 2, steel: 0.5 },
+  ghost:    { normal: 0, psychic: 2, ghost: 2, dark: 0.5 },
+  dragon:   { dragon: 2, steel: 0.5, fairy: 0 },
+  dark:     { fighting: 0.5, psychic: 2, ghost: 2, dark: 0.5, fairy: 0.5 },
+  steel:    { fire: 0.5, water: 0.5, electric: 0.5, ice: 2, rock: 2, steel: 0.5, fairy: 2 },
+  fairy:    { fire: 0.5, fighting: 2, poison: 0.5, dragon: 2, dark: 2, steel: 0.5 },
+};
+
+/* ============================================================
+   NATURES
+   ============================================================ */
+const STAT_KEYS = ['hp','atk','def','spa','spd','spe'];
+const STAT_LABELS = { hp:'HP', atk:'Atk', def:'Def', spa:'SpA', spd:'SpD', spe:'Spe' };
+
+const NATURES = [
+  // [name, plus, minus] — null/null = neutral
+  ['Hardy',null,null],['Docile',null,null],['Bashful',null,null],['Quirky',null,null],['Serious',null,null],
+  ['Lonely','atk','def'],['Brave','atk','spe'],['Adamant','atk','spa'],['Naughty','atk','spd'],
+  ['Bold','def','atk'],['Relaxed','def','spe'],['Impish','def','spa'],['Lax','def','spd'],
+  ['Timid','spe','atk'],['Hasty','spe','def'],['Jolly','spe','spa'],['Naive','spe','spd'],
+  ['Modest','spa','atk'],['Mild','spa','def'],['Quiet','spa','spe'],['Rash','spa','spd'],
+  ['Calm','spd','atk'],['Gentle','spd','def'],['Sassy','spd','spe'],['Careful','spd','spa'],
+];
+
+/* ============================================================
+   COMMON COMPETITIVE ITEMS (curated)
+   ============================================================ */
+const ITEMS = [
+  'None','Leftovers','Life Orb','Choice Band','Choice Scarf','Choice Specs',
+  'Focus Sash','Assault Vest','Rocky Helmet','Black Sludge','Sitrus Berry',
+  'Heavy-Duty Boots','Eviolite','Light Clay','Mental Herb','Air Balloon',
+  'Weakness Policy','Expert Belt','Lum Berry','Loaded Dice','Booster Energy',
+  'Covert Cloak','Clear Amulet','Mirror Herb','Terrain Seed','Throat Spray',
+  'Toxic Orb','Flame Orb','Black Glasses','Charcoal','Mystic Water','Miracle Seed',
+  'Magnet','Never-Melt Ice','Poison Barb','Soft Sand','Sharp Beak','Twisted Spoon',
+  'Silver Powder','Hard Stone','Spell Tag','Dragon Fang','Metal Coat',
+  // Mega Stones (VGC Reg M-A)
+  'Venusaurite','Charizardite X','Charizardite Y','Blastoisinite',
+  'Beedrillite','Pidgeotite','Alakazite','Slowbronite','Gengarite',
+  'Kangaskhanite','Pinsirite','Gyaradosite','Aerodactylite',
+  'Mewtwonite X','Mewtwonite Y','Ampharosite','Steelixite',
+  'Scizorite','Heracronite','Houndoominite','Tyranitarite',
+  'Sceptilite','Blazikenite','Swampertite','Gardevoirite',
+  'Sablenite','Mawilite','Aggronite','Medichamite','Manectite',
+  'Sharpedonite','Cameruptite','Altarianite','Banettite','Absolite',
+  'Glalitite','Salamencite','Metagrossite','Latiasite','Latiosite',
+  'Lopunnite','Garchompite','Lucarionite','Abomasite','Galladite',
+  'Audinite','Diancite','Dragonite Mega Stone',
+];
+
+/* ============================================================
+   MEGA EVOLUTION DATABASE (Reg M-A primary gimmick)
+   Maps base species -> mega form name(s) on PokéAPI
+   ============================================================ */
+const MEGA_MAP = {
+  'venusaur':    [{ stone: 'Venusaurite',        form: 'venusaur-mega' }],
+  'charizard':   [{ stone: 'Charizardite X',     form: 'charizard-mega-x' },
+                  { stone: 'Charizardite Y',     form: 'charizard-mega-y' }],
+  'blastoise':   [{ stone: 'Blastoisinite',      form: 'blastoise-mega' }],
+  'beedrill':    [{ stone: 'Beedrillite',        form: 'beedrill-mega' }],
+  'pidgeot':     [{ stone: 'Pidgeotite',         form: 'pidgeot-mega' }],
+  'alakazam':    [{ stone: 'Alakazite',          form: 'alakazam-mega' }],
+  'slowbro':     [{ stone: 'Slowbronite',        form: 'slowbro-mega' }],
+  'gengar':      [{ stone: 'Gengarite',          form: 'gengar-mega' }],
+  'kangaskhan':  [{ stone: 'Kangaskhanite',      form: 'kangaskhan-mega' }],
+  'pinsir':      [{ stone: 'Pinsirite',          form: 'pinsir-mega' }],
+  'gyarados':    [{ stone: 'Gyaradosite',        form: 'gyarados-mega' }],
+  'aerodactyl':  [{ stone: 'Aerodactylite',      form: 'aerodactyl-mega' }],
+  'mewtwo':      [{ stone: 'Mewtwonite X',       form: 'mewtwo-mega-x' },
+                  { stone: 'Mewtwonite Y',       form: 'mewtwo-mega-y' }],
+  'ampharos':    [{ stone: 'Ampharosite',        form: 'ampharos-mega' }],
+  'steelix':     [{ stone: 'Steelixite',         form: 'steelix-mega' }],
+  'scizor':      [{ stone: 'Scizorite',          form: 'scizor-mega' }],
+  'heracross':   [{ stone: 'Heracronite',        form: 'heracross-mega' }],
+  'houndoom':    [{ stone: 'Houndoominite',      form: 'houndoom-mega' }],
+  'tyranitar':   [{ stone: 'Tyranitarite',       form: 'tyranitar-mega' }],
+  'sceptile':    [{ stone: 'Sceptilite',         form: 'sceptile-mega' }],
+  'blaziken':    [{ stone: 'Blazikenite',        form: 'blaziken-mega' }],
+  'swampert':    [{ stone: 'Swampertite',        form: 'swampert-mega' }],
+  'gardevoir':   [{ stone: 'Gardevoirite',       form: 'gardevoir-mega' }],
+  'sableye':     [{ stone: 'Sablenite',          form: 'sableye-mega' }],
+  'mawile':      [{ stone: 'Mawilite',           form: 'mawile-mega' }],
+  'aggron':      [{ stone: 'Aggronite',          form: 'aggron-mega' }],
+  'medicham':    [{ stone: 'Medichamite',        form: 'medicham-mega' }],
+  'manectric':   [{ stone: 'Manectite',          form: 'manectric-mega' }],
+  'sharpedo':    [{ stone: 'Sharpedonite',       form: 'sharpedo-mega' }],
+  'camerupt':    [{ stone: 'Cameruptite',        form: 'camerupt-mega' }],
+  'altaria':     [{ stone: 'Altarianite',        form: 'altaria-mega' }],
+  'banette':     [{ stone: 'Banettite',          form: 'banette-mega' }],
+  'absol':       [{ stone: 'Absolite',           form: 'absol-mega' }],
+  'glalie':      [{ stone: 'Glalitite',          form: 'glalie-mega' }],
+  'salamence':   [{ stone: 'Salamencite',        form: 'salamence-mega' }],
+  'metagross':   [{ stone: 'Metagrossite',       form: 'metagross-mega' }],
+  'latias':      [{ stone: 'Latiasite',          form: 'latias-mega' }],
+  'latios':      [{ stone: 'Latiosite',          form: 'latios-mega' }],
+  'lopunny':     [{ stone: 'Lopunnite',          form: 'lopunny-mega' }],
+  'garchomp':    [{ stone: 'Garchompite',        form: 'garchomp-mega' }],
+  'lucario':     [{ stone: 'Lucarionite',        form: 'lucario-mega' }],
+  'abomasnow':   [{ stone: 'Abomasite',          form: 'abomasnow-mega' }],
+  'gallade':     [{ stone: 'Galladite',          form: 'gallade-mega' }],
+  'audino':      [{ stone: 'Audinite',           form: 'audino-mega' }],
+  'diancie':     [{ stone: 'Diancite',           form: 'diancie-mega' }],
+};
+
+function getMegaStoneFor(species) {
+  const list = MEGA_MAP[species];
+  return list ? list.map(m => m.stone) : [];
+}
+
+function getMegaFormFromItem(species, itemName) {
+  const list = MEGA_MAP[species] || [];
+  const match = list.find(m => m.stone === itemName);
+  return match?.form || null;
+}
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+const EMPTY_EVS = { hp:0, atk:0, def:0, spa:0, spd:0, spe:0 };
+const PERFECT_IVS = { hp:31, atk:31, def:31, spa:31, spd:31, spe:31 };
+const EV_TOTAL_MAX = 508;
+const EV_PER_STAT_MAX = 252;
+
+function titleCase(s) {
+  if (!s) return '';
+  return s.split(/[-_ ]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+function getDefensiveMultiplier(attackingType, defendingTypes) {
+  let mult = 1;
+  for (const def of defendingTypes) {
+    const chart = TYPE_CHART[attackingType];
+    if (chart && def in chart) mult *= chart[def];
+  }
+  return mult;
+}
+
+function getOffensiveHits(movetypes, targetTypes) {
+  // returns best multiplier among offensive move types vs target
+  let best = 0;
+  for (const mt of movetypes) {
+    const m = getDefensiveMultiplier(mt, targetTypes);
+    if (m > best) best = m;
+  }
+  return best;
+}
+
+function calcStat(stat, base, iv, ev, level, nature) {
+  if (stat === 'hp') {
+    if (base === 1) return 1; // shedinja
+    return Math.floor(((2 * base + iv + Math.floor(ev / 4)) * level) / 100) + level + 10;
+  }
+  let natMult = 1.0;
+  if (nature) {
+    const n = NATURES.find(x => x[0] === nature);
+    if (n) {
+      if (n[1] === stat) natMult = 1.1;
+      else if (n[2] === stat) natMult = 0.9;
+    }
+  }
+  const raw = Math.floor(((2 * base + iv + Math.floor(ev / 4)) * level) / 100) + 5;
+  return Math.floor(raw * natMult);
+}
+
+function evTotal(evs) { return STAT_KEYS.reduce((a, k) => a + (evs[k]||0), 0); }
+
+/* ============================================================
+   API (PokéAPI)
+   ============================================================ */
+const pokeCache = new Map();
+const moveCache = new Map();
+
+async function fetchPokemon(nameOrId) {
+  const key = String(nameOrId).toLowerCase().trim();
+  if (pokeCache.has(key)) return pokeCache.get(key);
+  const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${key}`);
+  if (!res.ok) throw new Error('not found');
+  const d = await res.json();
+  const pkm = {
+    id: d.id,
+    species: d.name,
+    displayName: titleCase(d.name),
+    sprite: d.sprites?.other?.['official-artwork']?.front_default || d.sprites?.front_default,
+    spriteSmall: d.sprites?.front_default,
+    types: d.types.map(t => t.type.name),
+    baseStats: {
+      hp:  d.stats.find(s => s.stat.name === 'hp').base_stat,
+      atk: d.stats.find(s => s.stat.name === 'attack').base_stat,
+      def: d.stats.find(s => s.stat.name === 'defense').base_stat,
+      spa: d.stats.find(s => s.stat.name === 'special-attack').base_stat,
+      spd: d.stats.find(s => s.stat.name === 'special-defense').base_stat,
+      spe: d.stats.find(s => s.stat.name === 'speed').base_stat,
+    },
+    abilities: d.abilities.map(a => ({ name: a.ability.name, hidden: a.is_hidden })),
+    availableMoves: d.moves.map(m => m.move.name).sort(),
+  };
+  pokeCache.set(key, pkm);
+  return pkm;
+}
+
+async function fetchMove(name) {
+  const key = String(name).toLowerCase().trim();
+  if (moveCache.has(key)) return moveCache.get(key);
+  try {
+    const res = await fetch(`https://pokeapi.co/api/v2/move/${key}`);
+    if (!res.ok) throw new Error();
+    const d = await res.json();
+    const mv = {
+      name: d.name,
+      displayName: titleCase(d.name),
+      type: d.type.name,
+      category: d.damage_class?.name || 'status',
+      power: d.power,
+      accuracy: d.accuracy,
+      pp: d.pp,
+      target: d.target?.name || 'selected-pokemon',
+      priority: d.priority ?? 0,
+    };
+    moveCache.set(key, mv);
+    return mv;
+  } catch {
+    return { name, displayName: titleCase(name), type: 'normal', category: 'status', power: null, accuracy: null, pp: null };
+  }
+}
+
+/* ============================================================
+   COMPONENTS
+   ============================================================ */
+
+function TypeBadge({ type, size = 'md' }) {
+  const color = TYPE_COLORS[type] || '#666';
+  const sizes = {
+    xs: 'text-[9px] px-1.5 py-0.5',
+    sm: 'text-[10px] px-2 py-0.5',
+    md: 'text-[11px] px-2.5 py-1',
+  };
+  return (
+    <span
+      className={`inline-block rounded font-mono uppercase tracking-wider font-medium ${sizes[size]}`}
+      style={{ backgroundColor: color + '30', color: color, border: `1px solid ${color}60` }}
+    >
+      {type}
+    </span>
+  );
+}
+
+function SectionTitle({ children, right }) {
+  return (
+    <div className="flex items-baseline justify-between mb-3 mt-5">
+      <h3 className="font-display text-2xl text-stone-100">{children}</h3>
+      {right}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------ */
+function TeamSlot({ slot, index, onClick, onRemove }) {
+  if (!slot) {
+    return (
+      <button
+        onClick={onClick}
+        className="aspect-[3/4] border border-dashed border-stone-700 rounded-xl flex flex-col items-center justify-center gap-2 text-stone-500 hover:border-amber-500/50 hover:text-amber-400 hover:bg-amber-500/5 transition-colors"
+      >
+        <Plus size={20} strokeWidth={1.5} />
+        <span className="font-mono text-[10px] tracking-widest">SLOT {index + 1}</span>
+      </button>
+    );
+  }
+  const primaryColor = TYPE_COLORS[slot.types[0]];
+  return (
+    <button
+      onClick={onClick}
+      className="relative aspect-[3/4] rounded-xl overflow-hidden border border-stone-800 hover:border-stone-600 transition-all bg-stone-900/50 text-left group"
+      style={{ boxShadow: `inset 0 0 0 1px ${primaryColor}30` }}
+    >
+      <div className="absolute inset-0 opacity-20" style={{ background: `radial-gradient(circle at 50% 30%, ${primaryColor} 0%, transparent 60%)` }} />
+      <div
+        onClick={(e) => { e.stopPropagation(); onRemove(); }}
+        className="absolute top-1.5 right-1.5 w-6 h-6 flex items-center justify-center rounded-md bg-black/40 hover:bg-red-500/50 text-stone-400 hover:text-white opacity-0 group-hover:opacity-100 transition cursor-pointer z-10"
+      >
+        <X size={12} />
+      </div>
+      <div className="relative z-[1] p-2 pt-3 flex flex-col h-full">
+        <div className="font-mono text-[9px] text-stone-500 tracking-widest">#{String(slot.id).padStart(3,'0')}</div>
+        <div className="flex-1 flex items-center justify-center">
+          {slot.sprite && <img src={slot.sprite} alt="" className="w-full h-auto max-h-[110px] object-contain drop-shadow-lg" />}
+        </div>
+        <div className="mt-auto">
+          <div className="font-display text-lg text-stone-100 leading-tight truncate">{slot.nickname || slot.displayName}</div>
+          <div className="flex gap-1 mt-1 flex-wrap">
+            {slot.types.map(t => <TypeBadge key={t} type={t} size="xs" />)}
+          </div>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+/* ------------------------------------------------------------ */
+function SearchOverlay({ open, onClose, onSelect }) {
+  const [q, setQ] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState([]);
+  const [error, setError] = useState('');
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (open) setTimeout(() => inputRef.current?.focus(), 50);
+    else { setQ(''); setResults([]); setError(''); }
+  }, [open]);
+
+  async function search(term) {
+    if (!term.trim()) { setResults([]); return; }
+    setLoading(true); setError('');
+    try {
+      const pkm = await fetchPokemon(term);
+      setResults([pkm]);
+    } catch {
+      // try partial match via species list
+      try {
+        const res = await fetch('https://pokeapi.co/api/v2/pokemon?limit=1500');
+        const data = await res.json();
+        const matches = data.results.filter(r => r.name.includes(term.toLowerCase())).slice(0, 12);
+        if (matches.length === 0) setError('Nessun Pokémon trovato');
+        const fetched = await Promise.all(matches.slice(0, 6).map(m => fetchPokemon(m.name).catch(() => null)));
+        setResults(fetched.filter(Boolean));
+      } catch {
+        setError('Errore nella ricerca');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-start justify-center pt-10 px-4" onClick={onClose}>
+      <div className="w-full max-w-md bg-stone-950 border border-stone-800 rounded-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-stone-800">
+          <Search size={18} className="text-stone-500" />
+          <input
+            ref={inputRef}
+            value={q}
+            onChange={e => { setQ(e.target.value); search(e.target.value); }}
+            placeholder="Cerca Pokémon..."
+            className="flex-1 bg-transparent text-stone-100 placeholder-stone-600 outline-none font-body"
+          />
+          {loading && <Loader2 size={16} className="animate-spin text-amber-500" />}
+          <button onClick={onClose} className="text-stone-500 hover:text-stone-300"><X size={18} /></button>
+        </div>
+        <div className="max-h-[60vh] overflow-y-auto scrollbar">
+          {error && <div className="p-6 text-center text-stone-500 font-body text-sm">{error}</div>}
+          {!error && results.length === 0 && !loading && (
+            <div className="p-6 text-center text-stone-600 font-body text-sm">Scrivi il nome (es. "charizard", "rotom-wash")</div>
+          )}
+          {results.map(p => (
+            <button
+              key={p.id}
+              onClick={() => { onSelect(p); onClose(); }}
+              className="w-full flex items-center gap-3 p-3 hover:bg-stone-900 border-b border-stone-900 last:border-0"
+            >
+              {p.spriteSmall && <img src={p.spriteSmall} alt="" className="w-12 h-12" />}
+              <div className="flex-1 text-left">
+                <div className="font-display text-lg text-stone-100">{p.displayName}</div>
+                <div className="flex gap-1 mt-0.5">
+                  {p.types.map(t => <TypeBadge key={t} type={t} size="xs" />)}
+                </div>
+              </div>
+              <div className="font-mono text-xs text-stone-500">#{String(p.id).padStart(3,'0')}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------ */
+function EVEditor({ evs, baseStats, level, nature, onChange }) {
+  const total = evTotal(evs);
+  const remaining = EV_TOTAL_MAX - total;
+
+  function setEV(stat, val) {
+    val = Math.max(0, Math.min(EV_PER_STAT_MAX, val));
+    const otherTotal = total - (evs[stat] || 0);
+    val = Math.min(val, EV_TOTAL_MAX - otherTotal);
+    onChange({ ...evs, [stat]: val });
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-between items-baseline mb-1">
+        <span className="font-mono text-[10px] text-stone-500 tracking-widest">EV · {total}/508 · {remaining >= 0 ? remaining + ' rimasti' : 'sforamento'}</span>
+      </div>
+      {STAT_KEYS.map(stat => {
+        const base = baseStats[stat];
+        const ev = evs[stat] || 0;
+        const iv = 31;
+        const finalStat = calcStat(stat, base, iv, ev, level, nature);
+        const natureNote = (() => {
+          const n = NATURES.find(x => x[0] === nature);
+          if (!n) return null;
+          if (n[1] === stat) return '+';
+          if (n[2] === stat) return '−';
+          return null;
+        })();
+        return (
+          <div key={stat}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-mono text-xs text-stone-400 w-10">{STAT_LABELS[stat]}</span>
+              <span className="font-mono text-[10px] text-stone-600 w-10">{base}</span>
+              <div className="flex-1 h-1.5 bg-stone-900 rounded-full overflow-hidden">
+                <div
+                  className="h-full transition-all"
+                  style={{ width: `${(ev / EV_PER_STAT_MAX) * 100}%`, backgroundColor: TYPE_COLORS[stat === 'atk' || stat === 'spa' ? 'fire' : stat === 'def' || stat === 'spd' ? 'steel' : stat === 'spe' ? 'electric' : 'grass'] }}
+                />
+              </div>
+              <span className={`font-mono text-xs w-20 text-right ${natureNote === '+' ? 'text-amber-400' : natureNote === '−' ? 'text-red-400' : 'text-stone-200'}`}>
+                {finalStat}{natureNote && <span className="text-[10px] ml-0.5">{natureNote}</span>}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 ml-12">
+              <button onClick={() => setEV(stat, ev - 4)} className="w-6 h-5 text-[10px] font-mono bg-stone-900 hover:bg-stone-800 rounded text-stone-400">-4</button>
+              <input
+                type="number" step={4} min={0} max={252} value={ev}
+                onChange={e => setEV(stat, parseInt(e.target.value) || 0)}
+                className="flex-1 bg-stone-900 text-center font-mono text-xs py-0.5 rounded text-stone-200 outline-none focus:ring-1 ring-amber-500"
+              />
+              <button onClick={() => setEV(stat, ev + 4)} className="w-6 h-5 text-[10px] font-mono bg-stone-900 hover:bg-stone-800 rounded text-stone-400">+4</button>
+              <button onClick={() => setEV(stat, 252)} className="w-10 h-5 text-[9px] font-mono bg-stone-900 hover:bg-amber-900/40 rounded text-stone-500">MAX</button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------ */
+function MoveSlot({ move, availableMoves, onChange, onClear }) {
+  const [editing, setEditing] = useState(false);
+  const [q, setQ] = useState('');
+  const [moveDetails, setMoveDetails] = useState(null);
+
+  useEffect(() => {
+    if (move) fetchMove(move).then(setMoveDetails);
+    else setMoveDetails(null);
+  }, [move]);
+
+  const filtered = useMemo(() => {
+    if (!q) return availableMoves.slice(0, 50);
+    return availableMoves.filter(m => m.includes(q.toLowerCase())).slice(0, 50);
+  }, [q, availableMoves]);
+
+  if (editing) {
+    return (
+      <div className="bg-stone-900 border border-amber-500/40 rounded-lg p-2 space-y-2">
+        <div className="flex items-center gap-2">
+          <Search size={14} className="text-stone-500" />
+          <input autoFocus value={q} onChange={e => setQ(e.target.value)} placeholder="Cerca mossa..."
+            className="flex-1 bg-transparent text-sm text-stone-100 outline-none placeholder-stone-600" />
+          <button onClick={() => setEditing(false)} className="text-stone-500"><X size={14} /></button>
+        </div>
+        <div className="max-h-40 overflow-y-auto scrollbar">
+          {filtered.map(m => (
+            <button key={m} onClick={() => { onChange(m); setEditing(false); setQ(''); }}
+              className="w-full text-left text-sm py-1.5 px-2 hover:bg-stone-800 rounded font-body text-stone-300">
+              {titleCase(m)}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (!move) {
+    return (
+      <button onClick={() => setEditing(true)} className="w-full bg-stone-900/50 border border-dashed border-stone-800 hover:border-stone-600 rounded-lg px-3 py-2 text-left text-stone-600 text-sm font-body">
+        + aggiungi mossa
+      </button>
+    );
+  }
+
+  const cat = moveDetails?.category;
+  return (
+    <div className="flex items-center gap-2 bg-stone-900/70 border border-stone-800 rounded-lg px-2.5 py-1.5">
+      <button onClick={() => setEditing(true)} className="flex-1 flex items-center gap-2 text-left">
+        {moveDetails && <TypeBadge type={moveDetails.type} size="xs" />}
+        <span className="font-body text-sm text-stone-200 truncate">{moveDetails?.displayName || titleCase(move)}</span>
+        {cat && cat !== 'status' && (
+          <span className="font-mono text-[9px] text-stone-500">
+            {moveDetails.power || '—'}{cat === 'physical' ? 'p' : 's'}
+          </span>
+        )}
+      </button>
+      <button onClick={onClear} className="text-stone-600 hover:text-red-400"><X size={12} /></button>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------ */
+function PokemonEditor({ slot, onChange, onClose }) {
+  const level = slot.level ?? 100;
+
+  function update(patch) { onChange({ ...slot, ...patch }); }
+
+  return (
+    <div className="space-y-4 fade-up">
+      {/* Header */}
+      <div className="relative bg-stone-900/50 border border-stone-800 rounded-2xl p-4 overflow-hidden">
+        <div className="absolute inset-0 opacity-20" style={{ background: `radial-gradient(circle at 80% 30%, ${TYPE_COLORS[slot.types[0]]}, transparent 60%)` }} />
+        <div className="relative flex items-start gap-4">
+          {slot.sprite && <img src={slot.sprite} alt="" className="w-24 h-24 object-contain drop-shadow-xl" />}
+          <div className="flex-1 min-w-0">
+            <div className="font-mono text-[10px] text-stone-500 tracking-widest">#{String(slot.id).padStart(3,'0')}</div>
+            <div className="font-display text-3xl text-stone-50 leading-tight">{slot.displayName}</div>
+            <input
+              value={slot.nickname || ''}
+              onChange={e => update({ nickname: e.target.value })}
+              placeholder="soprannome (opzionale)"
+              className="w-full mt-1 bg-transparent border-b border-stone-800 focus:border-amber-500/50 font-body text-sm text-stone-300 placeholder-stone-600 outline-none py-0.5"
+            />
+            <div className="flex gap-1 mt-2">{slot.types.map(t => <TypeBadge key={t} type={t} />)}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Ability & Item & Nature & Level */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="font-mono text-[10px] text-stone-500 tracking-widest">ABILITÀ</label>
+          <select value={slot.ability || ''} onChange={e => update({ ability: e.target.value })}
+            className="w-full mt-1 bg-stone-900 border border-stone-800 rounded-lg px-2.5 py-2 text-sm text-stone-200 outline-none focus:border-amber-500/50">
+            <option value="">—</option>
+            {slot.abilities.map(a => <option key={a.name} value={a.name}>{titleCase(a.name)}{a.hidden ? ' (H)' : ''}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="font-mono text-[10px] text-stone-500 tracking-widest">OGGETTO</label>
+          <select value={slot.item || 'None'} onChange={e => update({ item: e.target.value })}
+            className="w-full mt-1 bg-stone-900 border border-stone-800 rounded-lg px-2.5 py-2 text-sm text-stone-200 outline-none focus:border-amber-500/50">
+            {ITEMS.map(i => <option key={i} value={i}>{i}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="font-mono text-[10px] text-stone-500 tracking-widest">NATURA</label>
+          <select value={slot.nature || 'Hardy'} onChange={e => update({ nature: e.target.value })}
+            className="w-full mt-1 bg-stone-900 border border-stone-800 rounded-lg px-2.5 py-2 text-sm text-stone-200 outline-none focus:border-amber-500/50">
+            {NATURES.map(n => (
+              <option key={n[0]} value={n[0]}>
+                {n[0]}{n[1] ? ` (+${STAT_LABELS[n[1]]}/-${STAT_LABELS[n[2]]})` : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="font-mono text-[10px] text-stone-500 tracking-widest">LIVELLO</label>
+          <input type="number" min={1} max={100} value={level}
+            onChange={e => update({ level: Math.max(1, Math.min(100, parseInt(e.target.value)||50)) })}
+            className="w-full mt-1 bg-stone-900 border border-stone-800 rounded-lg px-2.5 py-2 text-sm text-stone-200 outline-none focus:border-amber-500/50" />
+        </div>
+        <div className="col-span-2">
+          <label className="font-mono text-[10px] text-stone-500 tracking-widest">TERA TYPE</label>
+          <div className="grid grid-cols-6 gap-1 mt-1.5">
+            {TYPES.map(t => {
+              const active = (slot.teraType || slot.types[0]) === t;
+              return (
+                <button key={t} onClick={() => update({ teraType: t })}
+                  className={`rounded text-[9px] py-1.5 font-mono uppercase tracking-wider transition ${active ? 'ring-2 scale-105' : 'opacity-40 hover:opacity-80'}`}
+                  style={{
+                    backgroundColor: TYPE_COLORS[t] + (active ? '50' : '25'),
+                    color: TYPE_COLORS[t],
+                    boxShadow: active ? `inset 0 0 0 1px ${TYPE_COLORS[t]}` : 'none',
+                  }}
+                >{t.slice(0,4)}</button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* EVs */}
+      <div>
+        <SectionTitle>Statistiche &amp; EV</SectionTitle>
+        <EVEditor evs={slot.evs} baseStats={slot.baseStats} level={level} nature={slot.nature} onChange={evs => update({ evs })} />
+      </div>
+
+      {/* Moves */}
+      <div>
+        <SectionTitle>Mosse</SectionTitle>
+        <div className="grid grid-cols-1 gap-2">
+          {[0,1,2,3].map(i => (
+            <MoveSlot
+              key={i}
+              move={slot.moves[i]}
+              availableMoves={slot.availableMoves}
+              onChange={mv => { const m = [...slot.moves]; m[i] = mv; update({ moves: m }); }}
+              onClear={() => { const m = [...slot.moves]; m[i] = null; update({ moves: m }); }}
+            />
+          ))}
+        </div>
+      </div>
+
+      <button onClick={onClose} className="w-full bg-amber-500 hover:bg-amber-400 text-stone-950 font-body font-semibold py-3 rounded-xl flex items-center justify-center gap-2">
+        <ChevronLeft size={16} /> torna al team
+      </button>
+    </div>
+  );
+}
+
+/* ============================================================
+   TEAM ANALYSIS
+   ============================================================ */
+function analyzeTeam(team, moveData) {
+  const members = team.filter(Boolean);
+  if (members.length === 0) return null;
+
+  // Defensive: for each attacking type, how many team members weak (x2+), how many resist/immune
+  const defensive = {};
+  for (const atk of TYPES) {
+    let weak = 0, resist = 0, immune = 0, neutral = 0;
+    for (const m of members) {
+      const mult = getDefensiveMultiplier(atk, m.types);
+      if (mult === 0) immune++;
+      else if (mult >= 2) weak++;
+      else if (mult <= 0.5) resist++;
+      else neutral++;
+    }
+    defensive[atk] = { weak, resist, immune, neutral };
+  }
+
+  // Offensive coverage: for each defending type, best multiplier the team can achieve
+  const offensive = {};
+  for (const def of TYPES) {
+    let best = 0, bestMember = null;
+    for (const m of members) {
+      const movetypes = (m.moves || []).filter(Boolean).map(mv => moveData[mv]?.type).filter(Boolean);
+      const mult = getOffensiveHits(movetypes, [def]);
+      if (mult > best) { best = mult; bestMember = m; }
+    }
+    offensive[def] = { best, member: bestMember };
+  }
+
+  // Risk calculation
+  let riskScore = 0;
+  const issues = [];
+
+  // Defensive gaps: types where 2+ members are weak
+  const majorWeaknesses = TYPES.filter(t => defensive[t].weak >= 2);
+  riskScore += majorWeaknesses.length * 10;
+  if (majorWeaknesses.length > 0) {
+    issues.push({ level: 'high', text: `${majorWeaknesses.length} tipi con debolezza condivisa (≥2 membri): ${majorWeaknesses.join(', ')}` });
+  }
+
+  // Uncovered offensive: types that no member can hit super-effectively
+  const uncovered = TYPES.filter(t => offensive[t].best < 2);
+  riskScore += uncovered.length * 5;
+  if (uncovered.length > 6) {
+    issues.push({ level: 'med', text: `${uncovered.length} tipi non coperti offensivamente` });
+  }
+
+  // Missing moves
+  const missingMoves = members.filter(m => (m.moves || []).filter(Boolean).length < 4);
+  if (missingMoves.length > 0) {
+    issues.push({ level: 'low', text: `${missingMoves.length} Pokémon con moveset incompleto` });
+    riskScore += missingMoves.length * 3;
+  }
+
+  // EV unspent
+  const unspent = members.filter(m => evTotal(m.evs) < 508);
+  if (unspent.length > 0) {
+    issues.push({ level: 'low', text: `${unspent.length} Pokémon con EV non distribuiti` });
+    riskScore += unspent.length * 2;
+  }
+
+  // Normalized 0-100
+  const riskNorm = Math.min(100, riskScore);
+
+  return { defensive, offensive, riskScore: riskNorm, issues, memberCount: members.length, majorWeaknesses, uncovered };
+}
+
+function AnalysisPanel({ team, moveData }) {
+  const analysis = useMemo(() => analyzeTeam(team, moveData), [team, moveData]);
+
+  if (!analysis) {
+    return (
+      <div className="py-20 text-center">
+        <Target size={28} className="mx-auto text-stone-700 mb-3" />
+        <p className="font-body text-stone-500 text-sm">Aggiungi Pokémon al team per vedere l'analisi</p>
+      </div>
+    );
+  }
+
+  const { defensive, offensive, riskScore, issues, memberCount } = analysis;
+  const riskColor = riskScore < 20 ? '#64b95e' : riskScore < 50 ? '#f6c744' : '#c7332f';
+
+  return (
+    <div className="space-y-5 fade-up">
+      {/* Risk meter */}
+      <div className="bg-stone-900/50 border border-stone-800 rounded-2xl p-5">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Gauge size={16} style={{ color: riskColor }} />
+            <span className="font-mono text-xs text-stone-400 tracking-widest">RISK SCORE</span>
+          </div>
+          <span className="font-mono text-[10px] text-stone-600">{memberCount}/6 membri</span>
+        </div>
+        <div className="flex items-baseline gap-2">
+          <span className="font-display text-6xl" style={{ color: riskColor }}>{riskScore}</span>
+          <span className="font-mono text-xs text-stone-500">/100</span>
+        </div>
+        <div className="h-1.5 bg-stone-900 rounded-full mt-3 overflow-hidden">
+          <div className="h-full transition-all pulse-glow" style={{ width: `${riskScore}%`, backgroundColor: riskColor }} />
+        </div>
+        <p className="mt-2 font-body text-xs text-stone-500">
+          {riskScore < 20 ? 'Team bilanciato con buona copertura.' : riskScore < 50 ? 'Team funzionale con alcuni punti deboli da sistemare.' : 'Team vulnerabile — molte debolezze condivise o scoperture.'}
+        </p>
+
+        {issues.length > 0 && (
+          <div className="mt-4 space-y-2">
+            {issues.map((iss, i) => (
+              <div key={i} className="flex items-start gap-2 text-xs font-body">
+                <AlertTriangle size={12} className={`mt-0.5 ${iss.level === 'high' ? 'text-red-400' : iss.level === 'med' ? 'text-amber-400' : 'text-stone-500'}`} />
+                <span className="text-stone-300">{iss.text}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Defensive matrix */}
+      <div>
+        <SectionTitle right={<span className="font-mono text-[10px] text-stone-600">difesa</span>}>Debolezze del team</SectionTitle>
+        <div className="grid grid-cols-3 gap-1.5">
+          {TYPES.map(t => {
+            const d = defensive[t];
+            const isMajor = d.weak >= 2;
+            return (
+              <div key={t} className={`bg-stone-900/50 border rounded-lg p-2 ${isMajor ? 'border-red-500/50' : 'border-stone-800'}`}>
+                <TypeBadge type={t} size="xs" />
+                <div className="mt-1.5 flex items-center gap-2 font-mono text-[10px]">
+                  <span className={d.weak > 0 ? 'text-red-400' : 'text-stone-600'}>×{d.weak}w</span>
+                  <span className={d.resist > 0 ? 'text-emerald-400' : 'text-stone-600'}>×{d.resist}r</span>
+                  {d.immune > 0 && <span className="text-sky-400">×{d.immune}i</span>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Offensive coverage */}
+      <div>
+        <SectionTitle right={<span className="font-mono text-[10px] text-stone-600">attacco</span>}>Coverage offensiva</SectionTitle>
+        <div className="grid grid-cols-3 gap-1.5">
+          {TYPES.map(t => {
+            const o = offensive[t];
+            const status = o.best >= 2 ? 'hit' : o.best >= 1 ? 'neutral' : o.best > 0 ? 'resisted' : 'none';
+            return (
+              <div key={t} className={`bg-stone-900/50 border rounded-lg p-2 ${
+                status === 'hit' ? 'border-emerald-500/50' :
+                status === 'neutral' ? 'border-stone-800' :
+                status === 'resisted' ? 'border-amber-500/30' : 'border-red-500/40'
+              }`}>
+                <TypeBadge type={t} size="xs" />
+                <div className="mt-1 font-mono text-[10px]">
+                  {status === 'hit' && <span className="text-emerald-400">×{o.best}</span>}
+                  {status === 'neutral' && <span className="text-stone-500">×1</span>}
+                  {status === 'resisted' && <span className="text-amber-400">×{o.best}</span>}
+                  {status === 'none' && <span className="text-red-400">nessuna</span>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <p className="mt-2 font-mono text-[10px] text-stone-600">
+          basata sui tipi delle mosse assegnate — aggiungi mosse per migliorare la coverage
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   MOVE FLAG SETS (per abilità/item che le referenziano)
+   ============================================================ */
+const PUNCH_MOVES = new Set([
+  'bullet-punch','drain-punch','fire-punch','ice-punch','thunder-punch','mach-punch',
+  'meteor-mash','dynamic-punch','shadow-punch','comet-punch','hammer-arm','focus-punch',
+  'mega-punch','sky-uppercut','plasma-fists','sucker-punch','power-up-punch','rage-fist',
+  'double-iron-bash','wicked-blow','surging-strikes','headlong-rush','jet-punch','ice-hammer',
+]);
+const BITE_MOVES = new Set([
+  'bite','crunch','fire-fang','thunder-fang','ice-fang','hyper-fang','psychic-fangs',
+  'poison-fang','fishious-rend','jaw-lock',
+]);
+const SOUND_MOVES = new Set([
+  'hyper-voice','boomburst','uproar','round','relic-song','noble-roar','parting-shot',
+  'disarming-voice','snarl','clanging-scales','clangorous-soul','overdrive','torch-song',
+  'alluring-voice','psychic-noise','bug-buzz','chatter','sparkling-aria','metal-sound',
+  'screech','grass-whistle','sing','perish-song','hyper-voice','echoed-voice',
+]);
+const PULSE_MOVES = new Set([
+  'water-pulse','dragon-pulse','dark-pulse','aura-sphere','origin-pulse','terrain-pulse',
+]);
+const SLICING_MOVES = new Set([
+  'air-slash','cross-poison','cut','fury-cutter','leaf-blade','night-slash',
+  'psycho-cut','razor-leaf','razor-shell','sacred-sword','slash','solar-blade',
+  'x-scissor','aerial-ace','bitter-blade','ceaseless-edge','kowtow-cleave',
+  'psyblade','stone-axe','behemoth-blade','behemoth-bash','aqua-cutter',
+  'population-bomb','cut','secret-sword',
+]);
+const CONTACT_MOVES_EXTRA = new Set([
+  // moves that are contact but not obvious; not strictly needed if we use NON_CONTACT_PHYSICAL as negative list
+]);
+const RECOIL_MOVES = new Set([
+  'brave-bird','flare-blitz','volt-tackle','wood-hammer','take-down','double-edge',
+  'head-smash','submission','wild-charge','head-charge','light-of-ruin','wave-crash',
+  'supercell-slam','axe-kick',
+]);
+// Physical moves that do NOT make contact
+const NON_CONTACT_PHYSICAL = new Set([
+  'earthquake','magnitude','fissure','bonemerang','bone-club','bone-rush',
+  'rock-slide','rock-throw','rock-tomb','rock-blast','stone-edge',
+  'self-destruct','explosion','mind-blown',
+  'pin-missile','bullet-seed','icicle-spear','barrage','egg-bomb','rock-wrecker',
+  'spikes','stealth-rock','toxic-spikes','sticky-web',
+  'mud-slap','dragon-tail','ancient-power','power-gem','poison-sting',
+  'attack-order','rock-blast','mirror-shot','spike-cannon','sand-tomb','whirlpool',
+  'psycho-cut','sacred-sword','razor-leaf','aerial-ace','air-cutter','air-slash',
+  'cross-poison','leaf-blade','night-slash','slash','solar-blade','x-scissor',
+  'bulldoze','precipice-blades','icicle-crash','icy-wind',
+]);
+// IMPORTANTE: Stone Edge / Close Combat ecc. sono contact; ne tengo pochi selezionati in NON_CONTACT.
+
+const IMMUNITY_TARGETED_BY_ITEM = { 'Iron Ball': true, 'Ring Target': true };
+
+/* ============================================================
+   PRECISION HELPERS (chain mod 4096, à la Pokémon Showdown)
+   ============================================================ */
+// Round half-down (half rounds down, > 0.5 rounds up) — Pokémon uses this.
+function pokeRound(val) {
+  const frac = val - Math.floor(val);
+  return frac > 0.5 ? Math.ceil(val) : Math.floor(val);
+}
+function modOf(factor) { return Math.round(factor * 4096); }
+function chainMod(mods) {
+  let m = 4096;
+  for (const x of mods) {
+    if (x !== 4096) m = (m * x + 2048) >> 12;
+  }
+  return m;
+}
+function applyMod(value, mod4096) {
+  return pokeRound(value * mod4096 / 4096);
+}
+
+// Compute a final stat honoring IV/EV/nature/stage.
+function computeStat(key, pkm, opts = {}) {
+  const base = pkm.baseStats[key];
+  const iv  = pkm.ivs?.[key] ?? 31;
+  const ev  = pkm.evs?.[key] ?? 0;
+  const lvl = pkm.level ?? 100;
+  const raw = calcStat(key, base, iv, ev, lvl, pkm.nature);
+  if (key === 'hp') return raw; // HP non ha stage
+
+  const stages = opts.stages || pkm.stages || {};
+  let stage = stages[key] ?? 0;
+  if (opts.ignorePosStage && stage > 0) stage = 0;
+  if (opts.ignoreNegStage && stage < 0) stage = 0;
+  if (stage === 0) return raw;
+  if (stage > 0) return Math.floor(raw * (2 + stage) / 2);
+  return Math.floor(raw * 2 / (2 - stage));
+}
+
+function isContactMove(moveName, category) {
+  if (category !== 'physical') return false;
+  return !NON_CONTACT_PHYSICAL.has(moveName);
+}
+
+/* ============================================================
+   DAMAGE CALCULATION (Gen 9 formula)
+   ============================================================ */
+const SPREAD_TARGETS = new Set(['all-other-pokemon','all-opponents','all-allies','user-and-allies']);
+
+const WEATHER_OPTS = [
+  { id:'none', label:'Nessuno' },
+  { id:'sun',  label:'Sole' },
+  { id:'rain', label:'Pioggia' },
+  { id:'sand', label:'Sabbia' },
+  { id:'snow', label:'Neve' },
+];
+
+const TERRAIN_OPTS = [
+  { id:'none',     label:'—' },
+  { id:'electric', label:'Electric' },
+  { id:'grassy',   label:'Grassy' },
+  { id:'psychic',  label:'Psychic' },
+  { id:'misty',    label:'Misty' },
+];
+
+// Defender-side abilities that modify incoming damage
+const DEF_ABILITIES = [
+  { id:'none',            label:'—' },
+  { id:'thick-fat',       label:'Thick Fat',       desc:'½ Fire/Ice' },
+  { id:'heatproof',       label:'Heatproof',       desc:'½ Fire' },
+  { id:'fluffy',          label:'Fluffy',          desc:'½ fis · 2× Fire' },
+  { id:'filter',          label:'Filter / Solid Rock', desc:'0.75× SE' },
+  { id:'prism-armor',     label:'Prism Armor',     desc:'0.75× SE (ignora ability)' },
+  { id:'multiscale',      label:'Multiscale / Shadow Shield', desc:'½ HP pieni' },
+  { id:'ice-scales',      label:'Ice Scales',      desc:'½ speciali' },
+  { id:'fur-coat',        label:'Fur Coat',        desc:'Def ×2' },
+  { id:'grass-pelt',      label:'Grass Pelt',      desc:'Def ×1.5 Grassy' },
+  { id:'marvel-scale',    label:'Marvel Scale',    desc:'Def ×1.5 status' },
+  { id:'friend-guard',    label:'Friend Guard',    desc:'0.75× (alleato)' },
+  { id:'wonder-guard',    label:'Wonder Guard',    desc:'solo SE' },
+  { id:'dry-skin',        label:'Dry Skin',        desc:'imm Water · 1.25× Fire' },
+  { id:'levitate',        label:'Levitate',        desc:'imm Ground' },
+  { id:'flash-fire',      label:'Flash Fire',      desc:'imm Fire' },
+  { id:'water-absorb',    label:'Water Absorb / Storm Drain', desc:'imm Water' },
+  { id:'volt-absorb',     label:'Volt Absorb / Lightning Rod / Motor Drive', desc:'imm Electric' },
+  { id:'sap-sipper',      label:'Sap Sipper',      desc:'imm Grass' },
+  { id:'earth-eater',     label:'Earth Eater',     desc:'imm Ground' },
+  { id:'well-baked-body', label:'Well-Baked Body', desc:'imm Fire' },
+  { id:'purifying-salt',  label:'Purifying Salt',  desc:'½ Ghost' },
+  { id:'water-bubble-def',label:'Water Bubble (dif.)', desc:'½ Fire' },
+  { id:'punk-rock-def',   label:'Punk Rock (dif.)',desc:'½ suono' },
+  { id:'tablets-of-ruin', label:'Tablets of Ruin', desc:'Atk nem. ×0.75' },
+  { id:'vessel-of-ruin',  label:'Vessel of Ruin',  desc:'SpA nem. ×0.75' },
+  { id:'unaware',         label:'Unaware',         desc:'ignora stage nem.' },
+];
+
+const ATK_ABILITIES = [
+  { id:'none',          label:'—' },
+  { id:'adaptability',  label:'Adaptability', desc:'STAB 2×' },
+  { id:'huge-power',    label:'Huge Power / Pure Power', desc:'Atk ×2' },
+  { id:'guts',          label:'Guts',         desc:'Atk ×1.5 se status, ignora burn' },
+  { id:'technician',    label:'Technician',   desc:'BP ×1.5 se ≤60' },
+  { id:'tough-claws',   label:'Tough Claws',  desc:'BP ×1.3 (contatto)' },
+  { id:'sheer-force',   label:'Sheer Force',  desc:'BP ×1.3 (effetto sec.)' },
+  { id:'iron-fist',     label:'Iron Fist',    desc:'BP ×1.2 (pugni)' },
+  { id:'strong-jaw',    label:'Strong Jaw',   desc:'BP ×1.5 (morsi)' },
+  { id:'mega-launcher', label:'Mega Launcher',desc:'BP ×1.5 (pulse)' },
+  { id:'reckless',      label:'Reckless',     desc:'BP ×1.2 (rinculo)' },
+  { id:'punk-rock',     label:'Punk Rock',    desc:'BP ×1.3 (suono)' },
+  { id:'tinted-lens',   label:'Tinted Lens',  desc:'2× se resistita' },
+  { id:'solar-power',   label:'Solar Power',  desc:'SpA ×1.5 sole' },
+  { id:'sand-force',    label:'Sand Force',   desc:'Rock/Ground/Steel ×1.3 sand' },
+  { id:'pixilate',      label:'Pixilate',     desc:'Normal → Fairy ×1.2' },
+  { id:'aerilate',      label:'Aerilate',     desc:'Normal → Flying ×1.2' },
+  { id:'refrigerate',   label:'Refrigerate',  desc:'Normal → Ice ×1.2' },
+  { id:'galvanize',     label:'Galvanize',    desc:'Normal → Electric ×1.2' },
+  { id:'normalize',     label:'Normalize',    desc:'tutte Normal ×1.2' },
+  { id:'water-bubble',  label:'Water Bubble', desc:'Water ×2' },
+  { id:'steelworker',   label:'Steelworker / Steely Spirit', desc:'Steel ×1.5' },
+  { id:'dragons-maw',   label:"Dragon's Maw", desc:'Dragon ×1.5' },
+  { id:'transistor',    label:'Transistor',   desc:'Electric ×1.3' },
+  { id:'rocky-payload', label:'Rocky Payload',desc:'Rock ×1.5' },
+  { id:'dark-aura',     label:'Dark Aura',    desc:'Dark ×1.33' },
+  { id:'fairy-aura',    label:'Fairy Aura',   desc:'Fairy ×1.33' },
+  { id:'sharpness',     label:'Sharpness',    desc:'1.5× slicing' },
+  { id:'scrappy',       label:'Scrappy',      desc:'Normal/Fight → Ghost' },
+  { id:'neuroforce',    label:'Neuroforce',   desc:'1.25× se SE' },
+  { id:'toxic-boost',   label:'Toxic Boost',  desc:'Atk ×1.5 se psn' },
+  { id:'flare-boost',   label:'Flare Boost',  desc:'SpA ×1.5 se brn' },
+  { id:'gorilla-tactics',label:'Gorilla Tactics',desc:'Atk ×1.5 lock' },
+  { id:'hustle',        label:'Hustle',       desc:'Atk ×1.5' },
+  { id:'hadron-engine', label:'Hadron Engine',desc:'SpA ×1.33 Electric Terrain' },
+  { id:'orichalcum-pulse',label:'Orichalcum Pulse',desc:'Atk ×1.33 sole' },
+  { id:'sword-of-ruin', label:'Sword of Ruin',desc:'Def nem. ×0.75' },
+  { id:'beads-of-ruin', label:'Beads of Ruin',desc:'SpD nem. ×0.75' },
+  { id:'supreme-overlord',label:'Supreme Overlord',desc:'fino a +50% (conta KO)' },
+  { id:'unaware',       label:'Unaware',      desc:'ignora stage nem.' },
+];
+
+const ABILITY_IMMUNITIES = {
+  'levitate': 'ground',
+  'flash-fire': 'fire',
+  'water-absorb': 'water',
+  'volt-absorb': 'electric',
+  'sap-sipper': 'grass',
+  'earth-eater': 'ground',
+  'well-baked-body': 'fire',
+  'dry-skin': 'water',
+};
+
+const TYPE_CHANGE_ABILITIES = {
+  pixilate:    { to:'fairy',    bp:1.2 },
+  aerilate:    { to:'flying',   bp:1.2 },
+  refrigerate: { to:'ice',      bp:1.2 },
+  galvanize:   { to:'electric', bp:1.2 },
+};
+
+const ITEM_TYPE_BOOST = {
+  'Black Glasses':'dark','Charcoal':'fire','Mystic Water':'water','Miracle Seed':'grass',
+  'Magnet':'electric','Never-Melt Ice':'ice','Poison Barb':'poison','Soft Sand':'ground',
+  'Sharp Beak':'flying','Twisted Spoon':'psychic','Silver Powder':'bug','Hard Stone':'rock',
+  'Spell Tag':'ghost','Dragon Fang':'dragon','Metal Coat':'steel',
+};
+
+// Stat stage multiplier (-6..+6)
+function stageMult(stage) {
+  const s = Math.max(-6, Math.min(6, stage));
+  if (s >= 0) return (2 + s) / 2;
+  return 2 / (2 - s);
+}
+
+function getDefenderFinalHP(defender) {
+  return calcStat('hp', defender.baseStats.hp, 31, defender.evs.hp || 0, defender.level, defender.nature);
+}
+
+// Effective speed with ability/item/stage/weather/terrain/booster
+function getEffectiveSpeed(mon, opts = {}) {
+  const { stage = 0, weather = 'none', terrain = 'none', booster = null, paralyzed = false } = opts;
+  let spe = calcStat('spe', mon.baseStats.spe, 31, mon.evs.spe || 0, mon.level, mon.nature);
+  spe = Math.floor(spe * stageMult(stage));
+  const ab = mon.ability;
+  if (ab === 'swift-swim'   && weather === 'rain') spe = Math.floor(spe * 2);
+  if (ab === 'chlorophyll'  && weather === 'sun')  spe = Math.floor(spe * 2);
+  if (ab === 'sand-rush'    && weather === 'sand') spe = Math.floor(spe * 2);
+  if (ab === 'slush-rush'   && weather === 'snow') spe = Math.floor(spe * 2);
+  if (ab === 'surge-surfer' && terrain === 'electric') spe = Math.floor(spe * 2);
+  if (ab === 'unburden'     && mon.item === 'None') spe = Math.floor(spe * 2);
+  if (mon.item === 'Choice Scarf') spe = Math.floor(spe * 1.5);
+  if (mon.item === 'Iron Ball')    spe = Math.floor(spe * 0.5);
+  if (booster === 'spe')           spe = Math.floor(spe * 1.5);
+  if (paralyzed && ab !== 'quick-feet') spe = Math.floor(spe * 0.5);
+  if (ab === 'quick-feet' && paralyzed) spe = Math.floor(spe * 1.5);
+  return spe;
+}
+
+// Precise Gen 9 damage calculation (Showdown-aligned ordering)
+function calculateDamage(opts) {
+  const {
+    attacker, attackerItem, attackerAbility, attackerStages = {},
+    defender, defenderItem, defenderAbility, defenderStages = {}, defenderHPCurrent,
+    move,
+    format,
+    crit = false, burn = false,
+    weather = 'none', terrain = 'none', screen = 'none',
+    teraActive = false,
+    boosterAtk = null, boosterDef = null,
+    isAlly = false,
+  } = opts;
+
+  const hpMax = getDefenderFinalHP(defender);
+  const empty = (notes, isImmune=false) => ({ min:0, max:0, rolls:[], typeEff:0, pctMin:0, pctMax:0, ohkoPct:0, thkoPct:0, notes, isImmune, hp:hpMax });
+
+  if (!move || !move.power || move.category === 'status') {
+    return empty(['mossa non offensiva']);
+  }
+
+  const notes = [];
+
+  // --- Type-change abilities ---
+  let moveType = move.type;
+  let moveBP = move.power;
+  const tc = TYPE_CHANGE_ABILITIES[attackerAbility];
+  if (tc && moveType === 'normal') {
+    moveType = tc.to; moveBP = pokeRound(moveBP * tc.bp);
+    notes.push(`${attackerAbility}→${moveType}`);
+  }
+  if (attackerAbility === 'normalize') {
+    moveType = 'normal'; moveBP = pokeRound(moveBP * 1.2);
+  }
+
+  // --- Tera ---
+  const teraType = teraActive ? (attacker.teraType || attacker.types[0]) : null;
+
+  // --- Type effectiveness ---
+  let typeEff = getDefensiveMultiplier(moveType, defender.types);
+
+  // Defender tera: if you want to simulate opp tera'd, temporarily replace types — skipped for simplicity
+
+  // Wonder Guard
+  if (defenderAbility === 'wonder-guard' && typeEff <= 1) {
+    return empty(['Wonder Guard'], true);
+  }
+
+  // Ability-based immunities
+  if (ABILITY_IMMUNITIES[defenderAbility] === moveType) {
+    return empty([`${defenderAbility} assorbe ${moveType}`], true);
+  }
+  if (typeEff === 0) {
+    return empty(['immune per tipo'], true);
+  }
+
+  // --- Stats ---
+  const isPhysical = move.category === 'physical';
+  const atkKey = isPhysical ? 'atk' : 'spa';
+  const defKey = isPhysical ? 'def' : 'spd';
+
+  let atkStat = calcStat(atkKey, attacker.baseStats[atkKey], 31, attacker.evs[atkKey] || 0, attacker.level, attacker.nature);
+  let defStat = calcStat(defKey, defender.baseStats[defKey], 31, defender.evs[defKey] || 0, defender.level, defender.nature);
+
+  // Stat stages (crit ignores negative attacker / positive defender)
+  const atkStage = attackerStages[atkKey] || 0;
+  const defStage = defenderStages[defKey] || 0;
+  const effAtkStage = crit && atkStage < 0 ? 0 : atkStage;
+  const effDefStage = crit && defStage > 0 ? 0 : defStage;
+  atkStat = Math.floor(atkStat * stageMult(effAtkStage));
+  defStat = Math.floor(defStat * stageMult(effDefStage));
+
+  // Ability effects on stats
+  if (attackerAbility === 'huge-power' && isPhysical) atkStat = Math.floor(atkStat * 2);
+  if (attackerAbility === 'solar-power' && !isPhysical && weather === 'sun') atkStat = Math.floor(atkStat * 1.5);
+  if (attackerAbility === 'guts' && isPhysical && burn) atkStat = Math.floor(atkStat * 1.5);
+  if (attackerAbility === 'hustle' && isPhysical) atkStat = Math.floor(atkStat * 1.5);
+  if (attackerAbility === 'gorilla-tactics' && isPhysical) atkStat = Math.floor(atkStat * 1.5);
+  if (attackerAbility === 'orichalcum-pulse' && isPhysical && weather === 'sun') atkStat = pokeRound(atkStat * 1.3333);
+  if (attackerAbility === 'hadron-engine' && !isPhysical && terrain === 'electric') atkStat = pokeRound(atkStat * 1.3333);
+  if (defenderAbility === 'fur-coat' && isPhysical) defStat = Math.floor(defStat * 2);
+  if (defenderAbility === 'ice-scales' && !isPhysical) defStat = Math.floor(defStat * 2);
+  if (defenderAbility === 'grass-pelt' && isPhysical && terrain === 'grassy') defStat = Math.floor(defStat * 1.5);
+  if (defenderAbility === 'marvel-scale' && isPhysical && burn) defStat = Math.floor(defStat * 1.5);
+
+  // --- Ruin abilities (Gen 9) — affect ALL OTHER Pokemon's stat by 0.75x ---
+  // Attacker-side Ruin: reduces defender's relevant defense
+  if (attackerAbility === 'sword-of-ruin' && isPhysical) { defStat = pokeRound(defStat * 0.75); notes.push('Sword of Ruin'); }
+  if (attackerAbility === 'beads-of-ruin' && !isPhysical) { defStat = pokeRound(defStat * 0.75); notes.push('Beads of Ruin'); }
+  // Defender-side Ruin: reduces attacker's relevant offense
+  if (defenderAbility === 'tablets-of-ruin' && isPhysical) { atkStat = pokeRound(atkStat * 0.75); notes.push('Tablets of Ruin'); }
+  if (defenderAbility === 'vessel-of-ruin' && !isPhysical) { atkStat = pokeRound(atkStat * 0.75); notes.push('Vessel of Ruin'); }
+
+  // Unaware: ignore opponent's stat stages
+  if (attackerAbility === 'unaware') {
+    // recalc defStat ignoring stages
+    defStat = calcStat(defKey, defender.baseStats[defKey], 31, defender.evs[defKey] || 0, defender.level, defender.nature);
+    if (defenderAbility === 'fur-coat' && isPhysical) defStat = Math.floor(defStat * 2);
+    if (defenderAbility === 'ice-scales' && !isPhysical) defStat = Math.floor(defStat * 2);
+    if (defenderItem === 'Assault Vest' && !isPhysical) defStat = Math.floor(defStat * 1.5);
+    if (defenderItem === 'Eviolite') defStat = Math.floor(defStat * 1.5);
+  }
+  if (defenderAbility === 'unaware') {
+    atkStat = calcStat(atkKey, attacker.baseStats[atkKey], 31, attacker.evs[atkKey] || 0, attacker.level, attacker.nature);
+    if (attackerAbility === 'huge-power' && isPhysical) atkStat = Math.floor(atkStat * 2);
+    if (attackerItem === 'Choice Band' && isPhysical) atkStat = Math.floor(atkStat * 1.5);
+    if (attackerItem === 'Choice Specs' && !isPhysical) atkStat = Math.floor(atkStat * 1.5);
+  }
+
+  // Item effects on stats
+  if (defenderItem === 'Assault Vest' && !isPhysical) defStat = Math.floor(defStat * 1.5);
+  if (defenderItem === 'Eviolite') defStat = Math.floor(defStat * 1.5);
+
+  // Booster Energy / Protosynthesis / Quark Drive
+  if (boosterAtk === atkKey) atkStat = Math.floor(atkStat * 1.3);
+  if (boosterDef === defKey) defStat = Math.floor(defStat * 1.3);
+
+  // --- Base power modifiers (flag-aware for precision) ---
+  let bp = moveBP;
+  const isContact = isContactMove(move.name, move.category);
+  if (attackerAbility === 'technician' && bp <= 60) bp = pokeRound(bp * 1.5);
+  if (attackerAbility === 'tough-claws' && isContact)            bp = pokeRound(bp * 1.3);
+  if (attackerAbility === 'iron-fist' && PUNCH_MOVES.has(move.name))  bp = pokeRound(bp * 1.2);
+  if (attackerAbility === 'strong-jaw' && BITE_MOVES.has(move.name))  bp = pokeRound(bp * 1.5);
+  if (attackerAbility === 'mega-launcher' && PULSE_MOVES.has(move.name)) bp = pokeRound(bp * 1.5);
+  if (attackerAbility === 'reckless' && RECOIL_MOVES.has(move.name)) bp = pokeRound(bp * 1.2);
+  if (attackerAbility === 'punk-rock' && SOUND_MOVES.has(move.name))  bp = pokeRound(bp * 1.3);
+  if (attackerAbility === 'sharpness' && SLICING_MOVES.has(move.name)) bp = pokeRound(bp * 1.5);
+  if (attackerAbility === 'sheer-force') bp = pokeRound(bp * 1.3); // approssimazione (effetti sec.)
+  if (attackerAbility === 'sand-force' && weather === 'sand' && ['rock','ground','steel'].includes(moveType)) bp = pokeRound(bp * 1.3);
+  // Type-boost attacker abilities (BP mods)
+  if (attackerAbility === 'transistor' && moveType === 'electric') bp = pokeRound(bp * 1.3);
+  if (attackerAbility === 'dragons-maw' && moveType === 'dragon')  bp = pokeRound(bp * 1.5);
+  if (attackerAbility === 'steelworker' && moveType === 'steel')   bp = pokeRound(bp * 1.5);
+  if (attackerAbility === 'rocky-payload' && moveType === 'rock')  bp = pokeRound(bp * 1.5);
+  if (attackerAbility === 'water-bubble' && moveType === 'water')  bp = pokeRound(bp * 2);
+  if (attackerAbility === 'dark-aura' && moveType === 'dark')      bp = pokeRound(bp * 1.3333);
+  if (attackerAbility === 'fairy-aura' && moveType === 'fairy')    bp = pokeRound(bp * 1.3333);
+
+  // Terrain BP mods
+  if (terrain === 'electric' && moveType === 'electric') bp = pokeRound(bp * 1.3);
+  if (terrain === 'grassy'   && moveType === 'grass')    bp = pokeRound(bp * 1.3);
+  if (terrain === 'psychic'  && moveType === 'psychic')  bp = pokeRound(bp * 1.3);
+  if (terrain === 'misty'    && moveType === 'dragon')   bp = pokeRound(bp * 0.5);
+  if (terrain === 'grassy' && ['earthquake','bulldoze','magnitude'].includes(move.name)) bp = pokeRound(bp * 0.5);
+
+  // --- Base damage formula ---
+  let base = Math.floor(Math.floor(Math.floor((2 * attacker.level) / 5 + 2) * bp * atkStat / defStat) / 50) + 2;
+
+  // --- Pre-random modifiers ---
+  // Spread
+  if (format === 'vgc' && SPREAD_TARGETS.has(move.target)) {
+    base = pokeRound(base * 0.75);
+    notes.push('spread×0.75');
+  }
+  // Weather
+  if (weather === 'sun') {
+    if (moveType === 'fire')  { base = pokeRound(base * 1.5); notes.push('sole×1.5'); }
+    else if (moveType === 'water') { base = pokeRound(base * 0.5); notes.push('sole×0.5'); }
+  } else if (weather === 'rain') {
+    if (moveType === 'water') { base = pokeRound(base * 1.5); notes.push('pioggia×1.5'); }
+    else if (moveType === 'fire') { base = pokeRound(base * 0.5); notes.push('pioggia×0.5'); }
+  }
+  // Crit
+  if (crit) { base = pokeRound(base * 1.5); notes.push('crit×1.5'); }
+
+  // --- Final modifier chain (applied per roll, after STAB/typeEff/burn) ---
+  const finalMods = [];
+
+  if (screen !== 'none' && !crit) {
+    const match =
+      (screen === 'reflect' && isPhysical) ||
+      (screen === 'lightscreen' && !isPhysical) ||
+      (screen === 'auroraveil');
+    if (match) finalMods.push([format === 'vgc' ? 2732/4096 : 0.5, screen]);
+  }
+  if (defenderAbility === 'multiscale' && (defenderHPCurrent ?? hpMax) === hpMax) finalMods.push([0.5, 'Multiscale']);
+  if ((defenderAbility === 'filter' || defenderAbility === 'prism-armor') && typeEff > 1) finalMods.push([0.75, defenderAbility]);
+  if (defenderAbility === 'friend-guard' && isAlly) finalMods.push([0.75, 'Friend Guard']);
+  if (defenderAbility === 'thick-fat' && (moveType === 'fire' || moveType === 'ice')) finalMods.push([0.5, 'Thick Fat']);
+  if (defenderAbility === 'heatproof' && moveType === 'fire') finalMods.push([0.5, 'Heatproof']);
+  if (defenderAbility === 'fluffy') {
+    if (isPhysical) finalMods.push([0.5, 'Fluffy fis']);
+    if (moveType === 'fire') finalMods.push([2, 'Fluffy fire']);
+  }
+  if (defenderAbility === 'dry-skin' && moveType === 'fire') finalMods.push([1.25, 'Dry Skin']);
+  if (defenderAbility === 'punk-rock-def' && SOUND_MOVES.has(move.name)) finalMods.push([0.5, 'Punk Rock def']);
+  if (defenderAbility === 'water-bubble-def' && moveType === 'fire') finalMods.push([0.5, 'Water Bubble def']);
+  if (defenderAbility === 'purifying-salt' && moveType === 'ghost') finalMods.push([0.5, 'Purifying Salt']);
+  if (attackerAbility === 'tinted-lens' && typeEff < 1) finalMods.push([2, 'Tinted Lens']);
+  if (attackerAbility === 'neuroforce' && typeEff > 1) finalMods.push([1.25, 'Neuroforce']);
+
+  // Attacker items
+  if ((attackerItem === 'Choice Band' && isPhysical) || (attackerItem === 'Choice Specs' && !isPhysical)) finalMods.push([1.5, attackerItem]);
+  if (attackerItem === 'Life Orb') finalMods.push([1.3, 'Life Orb']);
+  if (attackerItem === 'Muscle Band' && isPhysical) finalMods.push([1.1, 'Muscle Band']);
+  if (attackerItem === 'Wise Glasses' && !isPhysical) finalMods.push([1.1, 'Wise Glasses']);
+  if (attackerItem === 'Expert Belt' && typeEff > 1) finalMods.push([1.2, 'Expert Belt']);
+  if (ITEM_TYPE_BOOST[attackerItem] === moveType) finalMods.push([1.2, attackerItem]);
+
+  let chainMult = 1;
+  for (const [m, label] of finalMods) { chainMult *= m; notes.push(`${label}×${m}`); }
+
+  // STAB with Tera
+  const origSTAB = attacker.types.includes(moveType);
+  const teraSTAB = teraActive && teraType === moveType;
+  let stab = 1;
+  if (teraActive) {
+    if (teraSTAB && origSTAB) stab = 2.0;
+    else if (teraSTAB || origSTAB) stab = 1.5;
+  } else if (origSTAB) stab = 1.5;
+  if (attackerAbility === 'adaptability' && stab > 1) stab = Math.min(2.25, stab + 0.5);
+  if (stab !== 1) notes.push(`STAB×${stab}`);
+
+  // --- 16 damage rolls ---
+  const rolls = [];
+  for (let i = 0; i < 16; i++) {
+    let d = Math.floor(base * (85 + i) / 100);
+    if (stab !== 1) d = pokeRound(d * stab);
+    d = Math.floor(d * typeEff);
+    if (burn && isPhysical && attackerAbility !== 'guts') d = pokeRound(d * 0.5);
+    if (chainMult !== 1) d = pokeRound(d * chainMult);
+    rolls.push(d);
+  }
+  if (burn && isPhysical && attackerAbility !== 'guts') notes.push('burn×0.5');
+
+  const min = rolls[0], max = rolls[15];
+  const pctMin = (min / hpMax) * 100;
+  const pctMax = (max / hpMax) * 100;
+  const hpTarget = defenderHPCurrent ?? hpMax;
+  const ohkoPct = (rolls.filter(r => r >= hpTarget).length / 16) * 100;
+  let thkoPct = 0;
+  if (2 * min >= hpTarget) thkoPct = 100;
+  else if (2 * max < hpTarget) thkoPct = 0;
+  else {
+    let hits = 0;
+    for (let i = 0; i < 16; i++) for (let j = 0; j < 16; j++) if (rolls[i] + rolls[j] >= hpTarget) hits++;
+    thkoPct = (hits / 256) * 100;
+  }
+
+  return { min, max, rolls, typeEff, pctMin, pctMax, ohkoPct, thkoPct, notes, isImmune:false, hp:hpMax };
+}
+
+/* ------------------------------------------------------------ */
+function Toggle({ active, onClick, children, color='amber' }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-2.5 py-1.5 rounded-lg text-xs font-body border transition ${
+        active
+          ? `bg-${color}-500/15 border-${color}-500/50 text-${color}-300`
+          : 'bg-stone-900 border-stone-800 text-stone-500'
+      }`}
+      style={active ? { backgroundColor:'rgba(246,199,68,0.12)', borderColor:'rgba(246,199,68,0.4)', color:'#f6c744' } : undefined}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Segmented({ options, value, onChange }) {
+  return (
+    <div className="inline-flex bg-stone-900 border border-stone-800 rounded-lg p-0.5">
+      {options.map(o => (
+        <button
+          key={o.id}
+          onClick={() => onChange(o.id)}
+          className={`px-3 py-1 rounded-md text-xs font-body transition ${
+            value === o.id ? 'bg-stone-700 text-stone-100' : 'text-stone-500'
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------ */
+function DefenderSetup({ defender, onChange }) {
+  if (!defender) return null;
+  function update(patch) { onChange({ ...defender, ...patch }); }
+  function setEV(stat, val) {
+    val = Math.max(0, Math.min(252, Math.floor(val / 4) * 4));
+    const other = ['hp','atk','def','spa','spd','spe'].reduce((a,k)=> a + (k===stat?0:defender.evs[k]||0), 0);
+    val = Math.min(val, 508 - other);
+    update({ evs: { ...defender.evs, [stat]: val } });
+  }
+  const hp = calcStat('hp', defender.baseStats.hp, 31, defender.evs.hp, defender.level, defender.nature);
+  const defStat = calcStat('def', defender.baseStats.def, 31, defender.evs.def, defender.level, defender.nature);
+  const spdStat = calcStat('spd', defender.baseStats.spd, 31, defender.evs.spd, defender.level, defender.nature);
+
+  return (
+    <div className="bg-stone-900/50 border border-stone-800 rounded-xl p-3 space-y-3">
+      <div className="flex items-start gap-3">
+        {defender.spriteSmall && <img src={defender.spriteSmall} alt="" className="w-14 h-14" />}
+        <div className="flex-1">
+          <div className="font-display text-xl text-stone-100 leading-tight">{defender.displayName}</div>
+          <div className="flex gap-1 mt-1">{defender.types.map(t => <TypeBadge key={t} type={t} size="xs" />)}</div>
+          <div className="font-mono text-[10px] text-stone-500 mt-1">
+            HP {hp} · Def {defStat} · SpD {spdStat}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        {['hp','def','spd'].map(stat => (
+          <div key={stat}>
+            <label className="font-mono text-[9px] text-stone-500 tracking-widest">{STAT_LABELS[stat]} EV</label>
+            <div className="flex items-center gap-1 mt-0.5">
+              <button onClick={() => setEV(stat, (defender.evs[stat]||0) - 4)} className="w-5 h-5 text-[9px] font-mono bg-stone-800 rounded text-stone-400">−</button>
+              <input type="number" step={4} min={0} max={252} value={defender.evs[stat]||0}
+                onChange={e => setEV(stat, parseInt(e.target.value)||0)}
+                className="flex-1 bg-stone-800 text-center font-mono text-xs py-0.5 rounded text-stone-200 outline-none w-10" />
+              <button onClick={() => setEV(stat, (defender.evs[stat]||0) + 4)} className="w-5 h-5 text-[9px] font-mono bg-stone-800 rounded text-stone-400">+</button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="font-mono text-[9px] text-stone-500 tracking-widest">NATURA</label>
+          <select value={defender.nature} onChange={e => update({ nature: e.target.value })}
+            className="w-full bg-stone-800 text-xs py-1.5 px-2 rounded text-stone-200 outline-none">
+            {NATURES.map(n => <option key={n[0]} value={n[0]}>{n[0]}{n[1]?` +${STAT_LABELS[n[1]]}/-${STAT_LABELS[n[2]]}`:''}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="font-mono text-[9px] text-stone-500 tracking-widest">LIVELLO</label>
+          <input type="number" min={1} max={100} value={defender.level}
+            onChange={e => update({ level: Math.max(1, Math.min(100, parseInt(e.target.value)||50)) })}
+            className="w-full bg-stone-800 text-xs py-1.5 px-2 rounded text-stone-200 outline-none" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------ */
+function StageControls({ label, value, onChange, compact = false }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className={`font-mono text-[10px] text-stone-500 ${compact ? 'w-12' : 'w-24'}`}>{label}</span>
+      <button onClick={() => onChange(Math.max(-6, value - 1))}
+        className="w-6 h-6 bg-stone-900 border border-stone-800 rounded text-stone-400 text-xs font-mono hover:bg-stone-800">−</button>
+      <span className={`font-mono text-xs w-8 text-center ${value > 0 ? 'text-emerald-400' : value < 0 ? 'text-red-400' : 'text-stone-500'}`}>
+        {value > 0 ? '+' : ''}{value}
+      </span>
+      <button onClick={() => onChange(Math.min(6, value + 1))}
+        className="w-6 h-6 bg-stone-900 border border-stone-800 rounded text-stone-400 text-xs font-mono hover:bg-stone-800">+</button>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------ */
+function DamageCalculator({ team, moveData, ensureMove }) {
+  const [format, setFormat] = useState('vgc');
+  const [attackerIdx, setAttackerIdx] = useState(null);
+  const [moveIdx, setMoveIdx] = useState(0);
+  const [defender, setDefender] = useState(null);
+  const [defenderItem, setDefenderItem] = useState('None');
+  const [defenderAbility, setDefenderAbility] = useState('none');
+  const [attackerAbility, setAttackerAbility] = useState('none');
+  const [atkStages, setAtkStages] = useState({ atk:0, def:0, spa:0, spd:0, spe:0 });
+  const [defStages, setDefStages] = useState({ atk:0, def:0, spa:0, spd:0, spe:0 });
+  const [crit, setCrit] = useState(false);
+  const [burn, setBurn] = useState(false);
+  const [weather, setWeather] = useState('none');
+  const [terrain, setTerrain] = useState('none');
+  const [screen, setScreen] = useState('none');
+  const [boosterAtk, setBoosterAtk] = useState(null);
+  const [boosterDef, setBoosterDef] = useState(null);
+  const [hpPercent, setHpPercent] = useState(100);
+  const [megaActive, setMegaActive] = useState(false);
+  const [megaCache, setMegaCache] = useState({});
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  const baseAttacker = attackerIdx !== null ? team[attackerIdx] : null;
+  const moveName = baseAttacker?.moves?.[moveIdx];
+  const move = moveName ? moveData[moveName] : null;
+
+  // Check if attacker can Mega Evolve (has a valid Mega Stone)
+  const megaFormName = baseAttacker ? getMegaFormFromItem(baseAttacker.species, baseAttacker.item) : null;
+  const canMega = !!megaFormName;
+
+  // Preload mega form when item changes
+  useEffect(() => {
+    setMegaActive(false);
+    if (megaFormName && !megaCache[megaFormName]) {
+      fetchPokemon(megaFormName)
+        .then(mega => setMegaCache(p => ({ ...p, [megaFormName]: mega })))
+        .catch(() => {});
+    }
+  }, [attackerIdx, baseAttacker?.item, megaFormName]);
+
+  useEffect(() => {
+    if (moveName && !moveData[moveName]) ensureMove(moveName);
+  }, [moveName, moveData]);
+
+  // Effective attacker (apply Mega transformation if active)
+  const attacker = useMemo(() => {
+    if (!baseAttacker) return null;
+    if (!megaActive || !megaFormName) return baseAttacker;
+    const mega = megaCache[megaFormName];
+    if (!mega) return baseAttacker; // still loading
+    return {
+      ...baseAttacker,
+      baseStats: mega.baseStats,
+      types: mega.types,
+      displayName: mega.displayName,
+      sprite: mega.sprite,
+      spriteSmall: mega.spriteSmall,
+      _megaAbility: mega.abilities[0]?.name,
+    };
+  }, [baseAttacker, megaActive, megaFormName, megaCache]);
+
+  // When Mega active: item consumed, ability overridden by Mega ability
+  const effAtkItem = megaActive ? 'None' : baseAttacker?.item;
+  const effAtkAbility = megaActive && attacker?._megaAbility
+    ? attacker._megaAbility
+    : attackerAbility;
+
+  function pickDefender(pkm) {
+    setDefender({
+      ...pkm,
+      level: 50, nature: 'Calm',
+      evs: { hp: 252, atk: 0, def: 4, spa: 0, spd: 252, spe: 0 },
+    });
+    setDefenderAbility('none');
+    setDefenderItem('None');
+    setHpPercent(100);
+    setDefStages({ atk:0, def:0, spa:0, spd:0, spe:0 });
+  }
+
+  const hpMax = defender ? getDefenderFinalHP(defender) : 0;
+  const hpCurrent = Math.max(1, Math.floor(hpMax * hpPercent / 100));
+
+  const result = useMemo(() => {
+    if (!attacker || !defender || !move) return null;
+    return calculateDamage({
+      attacker,
+      attackerItem: effAtkItem,
+      attackerAbility: effAtkAbility,
+      attackerStages: atkStages,
+      defender, defenderItem, defenderAbility,
+      defenderStages: defStages,
+      defenderHPCurrent: hpCurrent,
+      move, format,
+      crit, burn, weather, terrain, screen,
+      teraActive: false,
+      boosterAtk, boosterDef,
+    });
+  }, [attacker, defender, move, effAtkItem, effAtkAbility, defenderItem, defenderAbility, format, crit, burn, weather, terrain, screen, atkStages, defStages, boosterAtk, boosterDef, hpCurrent]);
+
+  const isPhysMove = move?.category === 'physical';
+  const atkKey = isPhysMove ? 'atk' : 'spa';
+  const defKey = isPhysMove ? 'def' : 'spd';
+
+  const availableTeam = team.map((t, i) => ({ t, i })).filter(x => x.t);
+
+  if (availableTeam.length === 0) {
+    return (
+      <div className="py-20 text-center">
+        <Calculator size={28} className="mx-auto text-stone-700 mb-3" />
+        <p className="font-body text-stone-500 text-sm">Aggiungi Pokémon al team per usare il damage calculator</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5 fade-up">
+      {/* Format */}
+      <div className="flex items-center justify-between">
+        <Segmented
+          options={[{ id:'vgc', label:'VGC (doppio)' }, { id:'singles', label:'Singolo' }]}
+          value={format} onChange={setFormat}
+        />
+        <span className="font-mono text-[10px] text-stone-600">Reg M-A</span>
+      </div>
+
+      {/* Attacker selector */}
+      <div>
+        <div className="font-mono text-[10px] text-stone-500 tracking-widest mb-2">ATTACCANTE</div>
+        <div className="flex gap-2 overflow-x-auto scrollbar pb-1 -mx-4 px-4">
+          {availableTeam.map(({ t, i }) => (
+            <button
+              key={i}
+              onClick={() => {
+                setAttackerIdx(i); setMoveIdx(0);
+                setAtkStages({ atk:0, def:0, spa:0, spd:0, spe:0 });
+                setAttackerAbility('none');
+                setMegaActive(false);
+              }}
+              className={`flex-shrink-0 w-20 rounded-xl p-1.5 border transition ${
+                attackerIdx === i ? 'border-amber-500 bg-amber-500/5' : 'border-stone-800 bg-stone-900/50'
+              }`}
+            >
+              {t.spriteSmall && <img src={t.spriteSmall} alt="" className="w-full h-14 object-contain" />}
+              <div className="font-body text-[10px] text-stone-300 truncate text-center">{t.displayName}</div>
+            </button>
+          ))}
+        </div>
+
+        {attacker && baseAttacker && (
+          <div className="mt-3 space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {attacker.types.map(t => <TypeBadge key={t} type={t} size="xs" />)}
+              <span className="font-mono text-[10px] text-stone-500">
+                Lv{attacker.level} · {attacker.nature} · {effAtkItem !== 'None' ? effAtkItem : 'no item'}
+              </span>
+              {megaActive && <span className="font-mono text-[9px] text-purple-300 uppercase tracking-widest">MEGA</span>}
+            </div>
+
+            {/* Mega toggle */}
+            {canMega && (
+              <button
+                onClick={() => setMegaActive(!megaActive)}
+                className={`w-full px-3 py-2 rounded-lg text-xs font-body border transition flex items-center justify-center gap-2 ${
+                  megaActive
+                    ? 'bg-purple-500/15 border-purple-500/50 text-purple-300'
+                    : 'bg-stone-900 border-stone-800 text-stone-400 hover:border-purple-500/30'
+                }`}
+              >
+                <Sparkles size={12} />
+                {megaActive ? 'Mega Evolved' : 'Attiva Mega Evolution'}
+                {!megaCache[megaFormName] && megaActive && <Loader2 size={10} className="animate-spin" />}
+              </button>
+            )}
+
+            {/* Moves */}
+            <div className="grid grid-cols-2 gap-1.5">
+              {[0,1,2,3].map(i => {
+                const mn = baseAttacker.moves[i];
+                const m = mn ? moveData[mn] : null;
+                const selected = moveIdx === i;
+                if (!mn) return <div key={i} className="rounded-lg border border-dashed border-stone-800 py-2 text-center font-mono text-[10px] text-stone-700">—</div>;
+                return (
+                  <button key={i} onClick={() => setMoveIdx(i)}
+                    className={`rounded-lg border px-2 py-1.5 text-left text-xs transition ${
+                      selected ? 'border-amber-500 bg-amber-500/10' : 'border-stone-800 bg-stone-900/50'
+                    }`}>
+                    <div className="flex items-center gap-1.5">
+                      {m && <TypeBadge type={m.type} size="xs" />}
+                      <span className="font-body text-stone-200 truncate">{m?.displayName || titleCase(mn)}</span>
+                    </div>
+                    {m && m.power && (
+                      <div className="font-mono text-[9px] text-stone-500 mt-0.5">
+                        {m.power}bp · {m.category}{format==='vgc' && SPREAD_TARGETS.has(m.target) ? ' · spread' : ''}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Ability (hidden if mega overrides it) */}
+            {!megaActive && (
+              <div>
+                <label className="font-mono text-[9px] text-stone-500 tracking-widest">ABILITÀ ATTIVA (effetti dmg)</label>
+                <select value={attackerAbility} onChange={e => setAttackerAbility(e.target.value)}
+                  className="w-full mt-1 bg-stone-900 border border-stone-800 rounded-lg px-2 py-1.5 text-xs text-stone-200 outline-none">
+                  {ATK_ABILITIES.map(a => <option key={a.id} value={a.id}>{a.label}{a.desc?` · ${a.desc}`:''}</option>)}
+                </select>
+              </div>
+            )}
+            {megaActive && attacker._megaAbility && (
+              <div className="font-mono text-[10px] text-purple-300/70">
+                Abilità Mega: {titleCase(attacker._megaAbility)}
+              </div>
+            )}
+
+            {/* Stat stages for the relevant attacking stat */}
+            <StageControls
+              label={`Stage ${STAT_LABELS[atkKey]}`}
+              value={atkStages[atkKey]}
+              onChange={v => setAtkStages(s => ({ ...s, [atkKey]: v }))}
+            />
+
+            {/* Booster Energy selector */}
+            {baseAttacker.item === 'Booster Energy' && !megaActive && (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="font-mono text-[9px] text-stone-500 tracking-widest w-16">BOOSTER</span>
+                <Segmented
+                  options={[
+                    { id:null, label:'Off' },
+                    { id:'atk', label:'Atk' },
+                    { id:'spa', label:'SpA' },
+                  ]}
+                  value={boosterAtk} onChange={setBoosterAtk}
+                />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Defender */}
+      <div>
+        <div className="font-mono text-[10px] text-stone-500 tracking-widest mb-2">DIFENSORE</div>
+        {!defender ? (
+          <button onClick={() => setSearchOpen(true)}
+            className="w-full py-4 border border-dashed border-stone-700 rounded-xl text-stone-500 hover:border-amber-500/50 hover:text-amber-400 font-body text-sm">
+            + seleziona Pokémon difensore
+          </button>
+        ) : (
+          <div className="space-y-3">
+            <DefenderSetup defender={defender} onChange={setDefender} />
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="font-mono text-[9px] text-stone-500 tracking-widest">OGGETTO</label>
+                <select value={defenderItem} onChange={e => setDefenderItem(e.target.value)}
+                  className="w-full mt-1 bg-stone-900 border border-stone-800 rounded-lg px-2 py-1.5 text-xs text-stone-200 outline-none">
+                  {ITEMS.map(i => <option key={i} value={i}>{i}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="font-mono text-[9px] text-stone-500 tracking-widest">ABILITÀ</label>
+                <select value={defenderAbility} onChange={e => setDefenderAbility(e.target.value)}
+                  className="w-full mt-1 bg-stone-900 border border-stone-800 rounded-lg px-2 py-1.5 text-xs text-stone-200 outline-none">
+                  {DEF_ABILITIES.map(a => <option key={a.id} value={a.id}>{a.label}{a.desc?` · ${a.desc}`:''}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <StageControls
+              label={`Stage ${STAT_LABELS[defKey]}`}
+              value={defStages[defKey]}
+              onChange={v => setDefStages(s => ({ ...s, [defKey]: v }))}
+            />
+
+            {/* HP % */}
+            <div>
+              <div className="flex items-baseline justify-between">
+                <label className="font-mono text-[9px] text-stone-500 tracking-widest">HP ATTUALI</label>
+                <span className="font-mono text-[10px] text-stone-400">{hpPercent}% · {hpCurrent}/{hpMax}</span>
+              </div>
+              <input type="range" min={1} max={100} value={hpPercent}
+                onChange={e => setHpPercent(parseInt(e.target.value))}
+                className="w-full mt-1 accent-amber-500" />
+            </div>
+
+            {defender.item === 'Booster Energy' && (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="font-mono text-[9px] text-stone-500 tracking-widest w-16">BOOSTER</span>
+                <Segmented
+                  options={[
+                    { id:null, label:'Off' },
+                    { id:'def', label:'Def' },
+                    { id:'spd', label:'SpD' },
+                  ]}
+                  value={boosterDef} onChange={setBoosterDef}
+                />
+              </div>
+            )}
+
+            <button onClick={() => setSearchOpen(true)} className="text-xs font-body text-stone-500 hover:text-amber-400">
+              cambia difensore
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Conditions */}
+      {attacker && defender && move && (
+        <div>
+          <div className="font-mono text-[10px] text-stone-500 tracking-widest mb-2">CONDIZIONI CAMPO</div>
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-1.5">
+              <Toggle active={crit} onClick={() => setCrit(!crit)}>Crit</Toggle>
+              {isPhysMove && <Toggle active={burn} onClick={() => setBurn(!burn)}>Scottatura</Toggle>}
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-mono text-[10px] text-stone-500 w-14">Meteo</span>
+              <Segmented options={WEATHER_OPTS.map(w => ({ id:w.id, label:w.label }))} value={weather} onChange={setWeather} />
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-mono text-[10px] text-stone-500 w-14">Terreno</span>
+              <Segmented
+                options={[
+                  { id:'none', label:'Off' },{ id:'electric', label:'Elettr.' },
+                  { id:'grassy', label:'Erba' },{ id:'psychic', label:'Psic.' },{ id:'misty', label:'Nebb.' },
+                ]}
+                value={terrain} onChange={setTerrain}
+              />
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-mono text-[10px] text-stone-500 w-14">Schermo</span>
+              <Segmented
+                options={[
+                  { id:'none', label:'Off' },{ id:'reflect', label:'Reflect' },
+                  { id:'lightscreen', label:'L.Screen' },{ id:'auroraveil', label:'A.Veil' },
+                ]}
+                value={screen} onChange={setScreen}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Result */}
+      {result && (
+        <div className="bg-stone-900/70 border border-stone-800 rounded-2xl p-5 mt-2">
+          <div className="font-mono text-[10px] text-stone-500 tracking-widest mb-2">RISULTATO</div>
+          {result.isImmune ? (
+            <div className="py-4 text-center">
+              <div className="font-display text-3xl text-stone-400">Nessun danno</div>
+              <div className="font-body text-xs text-stone-500 mt-1">{result.notes.join(' · ')}</div>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-baseline gap-2">
+                <span className="font-display text-5xl text-amber-400">{result.min}–{result.max}</span>
+                <span className="font-mono text-xs text-stone-500">dmg</span>
+              </div>
+              <div className="font-mono text-sm text-stone-300 mt-1">
+                {result.pctMin.toFixed(1)}% – {result.pctMax.toFixed(1)}% HP
+                <span className="text-stone-600"> ({result.hp} HP max)</span>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <div className="bg-stone-950/60 border border-stone-800 rounded-lg p-2.5">
+                  <div className="font-mono text-[9px] text-stone-500 tracking-widest">OHKO</div>
+                  <div className={`font-display text-2xl ${result.ohkoPct === 100 ? 'text-red-400' : result.ohkoPct > 0 ? 'text-amber-400' : 'text-stone-500'}`}>
+                    {result.ohkoPct.toFixed(1)}%
+                  </div>
+                </div>
+                <div className="bg-stone-950/60 border border-stone-800 rounded-lg p-2.5">
+                  <div className="font-mono text-[9px] text-stone-500 tracking-widest">2HKO</div>
+                  <div className={`font-display text-2xl ${result.thkoPct === 100 ? 'text-red-400' : result.thkoPct > 0 ? 'text-amber-400' : 'text-stone-500'}`}>
+                    {result.thkoPct.toFixed(1)}%
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-3 flex items-center gap-2 flex-wrap">
+                <span className="font-mono text-[9px] text-stone-500 tracking-widest">EFF:</span>
+                <span className={`font-mono text-xs font-medium ${
+                  result.typeEff >= 2 ? 'text-emerald-400' :
+                  result.typeEff === 1 ? 'text-stone-400' :
+                  result.typeEff > 0 ? 'text-amber-400' : 'text-red-400'
+                }`}>×{result.typeEff}</span>
+                {result.notes.length > 0 && (
+                  <span className="font-mono text-[9px] text-stone-600">· {result.notes.join(' · ')}</span>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} onSelect={pickDefender} />
+    </div>
+  );
+}
+
+/* ============================================================
+   MATCHUP SIMULATOR (VGC 2v2 & lead advisor)
+   ============================================================ */
+
+// Mapping ability code (PokéAPI) → code for calcDamage.
+// PokéAPI uses hyphenated codes; my calcDamage constants use the same style.
+function abilityCodeForCalc(ab) {
+  if (!ab) return 'none';
+  // PokéAPI uses 'lightning-rod', 'storm-drain' etc — they map to volt-absorb/water-absorb in calc's immunities
+  const map = {
+    'lightning-rod': 'volt-absorb',
+    'motor-drive':   'volt-absorb',
+    'storm-drain':   'water-absorb',
+    'solid-rock':    'filter',
+    'shadow-shield': 'multiscale',
+    'pure-power':    'huge-power',
+    'steely-spirit': 'steelworker',
+  };
+  return map[ab] || ab;
+}
+
+function pokemonHasIntimidateImmunity(mon) {
+  return (
+    mon.item === 'Clear Amulet' ||
+    mon.ability === 'clear-body' ||
+    mon.ability === 'full-metal-body' ||
+    mon.ability === 'hyper-cutter' ||
+    mon.ability === 'white-smoke' ||
+    mon.ability === 'inner-focus' ||
+    mon.ability === 'oblivious' ||
+    mon.ability === 'scrappy' ||
+    mon.ability === 'own-tempo'
+  );
+}
+
+// Best damage (max %) me → opp across all 4 moves.
+function bestOffensiveHit(attacker, defender, moveData, env, opts = {}) {
+  const moves = (attacker.moves || []).filter(Boolean);
+  let best = null;
+  for (const mn of moves) {
+    const mv = moveData[mn];
+    if (!mv || !mv.power || mv.category === 'status') continue;
+    const d = calculateDamage({
+      attacker,
+      attackerItem: attacker.item,
+      attackerAbility: abilityCodeForCalc(attacker.ability),
+      attackerStages: opts.attackerStages || {},
+      defender,
+      defenderItem: defender.item,
+      defenderAbility: abilityCodeForCalc(defender.ability),
+      defenderStages: opts.defenderStages || {},
+      defenderHPCurrent: null,
+      move: mv,
+      format: 'vgc',
+      crit: false, burn: false,
+      weather: env.weather || 'none',
+      terrain: env.terrain || 'none',
+      screen: 'none',
+      teraActive: false,
+      boosterAtk: null, boosterDef: null,
+    });
+    if (!best || d.pctMax > best.pctMax) best = { name: mn, move: mv, ...d };
+  }
+  return best;
+}
+
+// Evaluate 1v1 matchup. Returns {score, myHit, oppHit, mySpeed, oppSpeed, notes}.
+function evaluateMatchup(me, opp, moveData, env = {}) {
+  const notes = [];
+
+  // Intimidate at switch-in (applied to the OTHER side if not immune)
+  const meHasInt = me.ability === 'intimidate';
+  const oppHasInt = opp.ability === 'intimidate';
+  const meIntImmune = pokemonHasIntimidateImmunity(me);
+  const oppIntImmune = pokemonHasIntimidateImmunity(opp);
+
+  const meStartStages = (oppHasInt && !meIntImmune) ? { atk: -1 } : {};
+  const oppStartStages = (meHasInt && !oppIntImmune) ? { atk: -1 } : {};
+  if (oppHasInt && !meIntImmune) notes.push('nemico Intimidate → −1 Atk a me');
+  if (meHasInt && !oppIntImmune) notes.push('io Intimidate → −1 Atk a nemico');
+
+  // My best hit on opp
+  const myHit = bestOffensiveHit(me, opp, moveData, env, {
+    attackerStages: meStartStages,
+    defenderStages: oppStartStages,
+  });
+  // Opp's best hit on me
+  const oppHit = bestOffensiveHit(opp, me, moveData, env, {
+    attackerStages: oppStartStages,
+    defenderStages: meStartStages,
+  });
+
+  // Speed
+  const mySpeed = getEffectiveSpeed(me, { weather: env.weather, terrain: env.terrain });
+  const oppSpeed = getEffectiveSpeed(opp, { weather: env.weather, terrain: env.terrain });
+
+  // Score
+  let score = 0;
+  const myPct = myHit?.pctMax || 0;
+  const oppPct = oppHit?.pctMax || 0;
+
+  // Damage differential (capped)
+  score += Math.min(100, myPct) - Math.min(100, oppPct);
+
+  // Speed importance
+  if (mySpeed > oppSpeed) score += 12;
+  else if (mySpeed < oppSpeed) score -= 12;
+
+  // Priority moves can override speed
+  const myHasPriority = (me.moves || []).some(mn => {
+    const m = moveData[mn];
+    return m && m.priority > 0 && m.power > 0;
+  });
+  const oppHasPriority = (opp.moves || []).some(mn => {
+    const m = moveData[mn];
+    return m && m.priority > 0 && m.power > 0;
+  });
+  if (myHasPriority && !oppHasPriority) score += 5;
+
+  // Guaranteed OHKO bonus/penalty
+  if (myHit && myHit.ohkoPct >= 100) score += 25;
+  else if (myHit && myHit.ohkoPct >= 50) score += 10;
+  if (oppHit && oppHit.ohkoPct >= 100) score -= 25;
+  else if (oppHit && oppHit.ohkoPct >= 50) score -= 10;
+
+  // Immunity tactical advantage
+  if (!oppHit || oppHit.pctMax === 0) { score += 15; notes.push('immune alle sue mosse offensive'); }
+  if (!myHit || myHit.pctMax === 0) { score -= 15; notes.push('immune alle mie mosse offensive'); }
+
+  return {
+    score: Math.round(score),
+    myHit, oppHit,
+    mySpeed, oppSpeed,
+    myPct: Math.round(myPct),
+    oppPct: Math.round(oppPct),
+    notes,
+  };
+}
+
+/* ------------------------------------------------------------ */
+function ScoreChip({ score, compact = false }) {
+  let color = 'text-stone-400 bg-stone-800/60';
+  if (score >= 60) color = 'text-emerald-300 bg-emerald-500/15';
+  else if (score >= 20) color = 'text-emerald-400 bg-emerald-500/10';
+  else if (score > -20) color = 'text-stone-300 bg-stone-700/40';
+  else if (score > -60) color = 'text-amber-400 bg-amber-500/10';
+  else color = 'text-red-400 bg-red-500/15';
+  const sign = score > 0 ? '+' : '';
+  return (
+    <span className={`rounded font-mono font-medium text-center ${color} ${compact ? 'px-1 py-0.5 text-[10px] min-w-8' : 'px-2 py-0.5 text-xs min-w-10'}`}>
+      {sign}{score}
+    </span>
+  );
+}
+
+/* ------------------------------------------------------------ */
+function MatchupDetail({ me, opp, result, onBack }) {
+  return (
+    <div className="space-y-3 fade-up">
+      <button onClick={onBack} className="text-xs font-body text-stone-500 hover:text-amber-400 flex items-center gap-1">
+        <ChevronLeft size={14} /> indietro
+      </button>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div className="bg-stone-900/70 border border-stone-800 rounded-xl p-3 text-center">
+          {me.spriteSmall && <img src={me.spriteSmall} alt="" className="w-16 h-16 mx-auto" />}
+          <div className="font-display text-sm text-stone-100 truncate">{me.displayName}</div>
+          <div className="flex justify-center gap-1 mt-0.5">{me.types.map(t => <TypeBadge key={t} type={t} size="xs" />)}</div>
+          <div className="font-mono text-[9px] text-stone-500 mt-1">Spe {result.mySpeed}</div>
+        </div>
+        <div className="bg-stone-900/70 border border-stone-800 rounded-xl p-3 text-center">
+          {opp.spriteSmall && <img src={opp.spriteSmall} alt="" className="w-16 h-16 mx-auto" />}
+          <div className="font-display text-sm text-stone-100 truncate">{opp.displayName}</div>
+          <div className="flex justify-center gap-1 mt-0.5">{opp.types.map(t => <TypeBadge key={t} type={t} size="xs" />)}</div>
+          <div className="font-mono text-[9px] text-stone-500 mt-1">Spe {result.oppSpeed}</div>
+        </div>
+      </div>
+
+      <div className="bg-stone-900/50 border border-stone-800 rounded-xl p-3 flex items-center justify-between">
+        <span className="font-mono text-[10px] text-stone-500 tracking-widest">SCORE MATCHUP</span>
+        <ScoreChip score={result.score} />
+      </div>
+
+      {/* My hit */}
+      <div>
+        <div className="font-mono text-[10px] text-stone-500 tracking-widest mb-1">LA MIA MIGLIOR MOSSA</div>
+        {result.myHit ? (
+          <div className="bg-stone-900/50 border border-stone-800 rounded-xl p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <TypeBadge type={result.myHit.move.type} size="xs" />
+              <span className="font-body text-sm text-stone-200">{result.myHit.move.displayName}</span>
+              <span className="font-mono text-[10px] text-stone-500 ml-auto">{result.myHit.move.power}bp</span>
+            </div>
+            <div className="font-mono text-xs text-stone-300">
+              {result.myHit.min}–{result.myHit.max} dmg · {result.myHit.pctMin.toFixed(0)}–{result.myHit.pctMax.toFixed(0)}% HP
+            </div>
+            <div className="font-mono text-[10px] text-amber-400 mt-0.5">
+              OHKO {result.myHit.ohkoPct.toFixed(0)}% · 2HKO {result.myHit.thkoPct.toFixed(0)}%
+            </div>
+          </div>
+        ) : (
+          <div className="font-body text-xs text-stone-500 italic">Nessuna mossa offensiva disponibile</div>
+        )}
+      </div>
+
+      {/* Opp hit */}
+      <div>
+        <div className="font-mono text-[10px] text-stone-500 tracking-widest mb-1">LA SUA MIGLIOR MOSSA CONTRO DI ME</div>
+        {result.oppHit ? (
+          <div className="bg-stone-900/50 border border-stone-800 rounded-xl p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <TypeBadge type={result.oppHit.move.type} size="xs" />
+              <span className="font-body text-sm text-stone-200">{result.oppHit.move.displayName}</span>
+              <span className="font-mono text-[10px] text-stone-500 ml-auto">{result.oppHit.move.power}bp</span>
+            </div>
+            <div className="font-mono text-xs text-stone-300">
+              {result.oppHit.min}–{result.oppHit.max} dmg · {result.oppHit.pctMin.toFixed(0)}–{result.oppHit.pctMax.toFixed(0)}% HP
+            </div>
+            <div className="font-mono text-[10px] text-red-400 mt-0.5">
+              OHKO {result.oppHit.ohkoPct.toFixed(0)}% · 2HKO {result.oppHit.thkoPct.toFixed(0)}%
+            </div>
+          </div>
+        ) : (
+          <div className="font-body text-xs text-stone-500 italic">Nessuna mossa offensiva disponibile</div>
+        )}
+      </div>
+
+      {result.notes.length > 0 && (
+        <div className="bg-stone-900/30 border border-stone-800 rounded-xl p-3">
+          <div className="font-mono text-[10px] text-stone-500 tracking-widest mb-1">NOTE TATTICHE</div>
+          <ul className="space-y-0.5">
+            {result.notes.map((n, i) => (
+              <li key={i} className="font-body text-[11px] text-stone-400">• {n}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------ */
+function MatchupSimulator({ team, opponentTeam, moveData, ensureMove, openOppSearch, onEditOpp, onRemoveOpp }) {
+  const [view, setView] = useState('leads'); // leads | matrix | detail
+  const [detail, setDetail] = useState(null); // { meIdx, oppIdx, result }
+  const [weather, setWeather] = useState('none');
+  const [terrain, setTerrain] = useState('none');
+
+  const myMembers = team.map((m, i) => ({ m, i })).filter(x => x.m);
+  const oppMembers = opponentTeam.map((m, i) => ({ m, i })).filter(x => x.m);
+
+  // Make sure all moves are loaded
+  useEffect(() => {
+    const all = new Set();
+    [...team, ...opponentTeam].forEach(p => {
+      if (p) (p.moves || []).forEach(mn => mn && all.add(mn));
+    });
+    for (const mn of all) if (!moveData[mn]) ensureMove(mn);
+  }, [team, opponentTeam]);
+
+  const env = { weather, terrain };
+
+  // 6×6 matchup grid
+  const grid = useMemo(() => {
+    if (myMembers.length === 0 || oppMembers.length === 0) return null;
+    const g = {};
+    for (const { m: me, i: mi } of myMembers) {
+      g[mi] = {};
+      for (const { m: opp, i: oi } of oppMembers) {
+        g[mi][oi] = evaluateMatchup(me, opp, moveData, env);
+      }
+    }
+    return g;
+  }, [team, opponentTeam, moveData, weather, terrain]);
+
+  // Rank my mons by performance
+  const ranking = useMemo(() => {
+    if (!grid) return [];
+    return myMembers
+      .map(({ m, i }) => {
+        const scores = oppMembers.map(({ i: oi }) => grid[i]?.[oi]?.score ?? 0);
+        const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+        const worst = scores.length ? Math.min(...scores) : 0;
+        const best = scores.length ? Math.max(...scores) : 0;
+        return { idx: i, mon: m, avg: Math.round(avg), worst, best };
+      })
+      .sort((a, b) => b.avg - a.avg);
+  }, [grid]);
+
+  // Best lead pairs (2 of 6, optimally matched against opp pairs)
+  const leads = useMemo(() => {
+    if (!grid || myMembers.length < 2 || oppMembers.length < 2) return [];
+    const out = [];
+    for (let a = 0; a < myMembers.length; a++) {
+      for (let b = a + 1; b < myMembers.length; b++) {
+        const mA = myMembers[a].i, mB = myMembers[b].i;
+        let sum = 0, count = 0;
+        const worstPair = [];
+        for (let c = 0; c < oppMembers.length; c++) {
+          for (let d = c + 1; d < oppMembers.length; d++) {
+            const oC = oppMembers[c].i, oD = oppMembers[d].i;
+            const s1 = grid[mA][oC].score + grid[mB][oD].score;
+            const s2 = grid[mA][oD].score + grid[mB][oC].score;
+            const best = Math.max(s1, s2);
+            sum += best;
+            worstPair.push(best);
+            count++;
+          }
+        }
+        // Penalize high variance (risk-aware per preference)
+        const avg = count > 0 ? sum / count : 0;
+        const worst = worstPair.length ? Math.min(...worstPair) : 0;
+        const composite = avg * 0.7 + worst * 0.3;
+        out.push({ mA, mB, avg: Math.round(avg), worst, composite: Math.round(composite) });
+      }
+    }
+    return out.sort((a, b) => b.composite - a.composite);
+  }, [grid]);
+
+  if (myMembers.length === 0) {
+    return (
+      <div className="py-20 text-center">
+        <Target size={28} className="mx-auto text-stone-700 mb-3" />
+        <p className="font-body text-stone-500 text-sm">Costruisci prima il tuo team</p>
+      </div>
+    );
+  }
+
+  // Opponent team UI
+  return (
+    <div className="space-y-5 fade-up">
+      {/* Opponent team */}
+      <div>
+        <div className="flex items-baseline justify-between mb-2">
+          <div className="font-mono text-[10px] text-stone-500 tracking-widest">TEAM AVVERSARIO</div>
+          <span className="font-mono text-[10px] text-stone-600">{oppMembers.length}/6</span>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {opponentTeam.map((slot, i) => (
+            <button
+              key={i}
+              onClick={() => slot ? onEditOpp(i) : openOppSearch(i)}
+              className={`relative rounded-xl border aspect-square p-2 flex flex-col items-center justify-center transition ${
+                slot ? 'bg-stone-900/60 border-stone-800' : 'bg-stone-950/50 border-dashed border-stone-800 hover:border-red-500/40'
+              }`}
+            >
+              {slot ? (
+                <>
+                  {slot.spriteSmall && <img src={slot.spriteSmall} alt="" className="w-14 h-14 object-contain" />}
+                  <div className="font-body text-[10px] text-stone-300 truncate w-full text-center">{slot.displayName}</div>
+                  <div className="flex gap-0.5 mt-0.5">{slot.types.map(t => <TypeBadge key={t} type={t} size="xs" />)}</div>
+                  <button
+                    onClick={e => { e.stopPropagation(); onRemoveOpp(i); }}
+                    className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-stone-950/80 flex items-center justify-center text-stone-500 hover:text-red-400"
+                  >
+                    <X size={9} />
+                  </button>
+                </>
+              ) : (
+                <Plus size={18} className="text-stone-600" />
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {oppMembers.length < 1 ? (
+        <div className="py-10 text-center border border-dashed border-stone-800 rounded-xl">
+          <p className="font-body text-stone-500 text-xs">Aggiungi almeno 1 Pokémon avversario per iniziare</p>
+        </div>
+      ) : (
+        <>
+          {/* Field conditions */}
+          <div className="space-y-2">
+            <div className="font-mono text-[10px] text-stone-500 tracking-widest">CONDIZIONI CAMPO</div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-mono text-[10px] text-stone-500 w-14">Meteo</span>
+              <Segmented options={WEATHER_OPTS.map(w => ({ id:w.id, label:w.label }))} value={weather} onChange={setWeather} />
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-mono text-[10px] text-stone-500 w-14">Terreno</span>
+              <Segmented
+                options={[
+                  { id:'none', label:'Off' },{ id:'electric', label:'Elettr.' },
+                  { id:'grassy', label:'Erba' },{ id:'psychic', label:'Psic.' },{ id:'misty', label:'Nebb.' },
+                ]}
+                value={terrain} onChange={setTerrain}
+              />
+            </div>
+          </div>
+
+          {/* View switcher */}
+          <div className="flex gap-1 bg-stone-900/60 border border-stone-800 rounded-xl p-1">
+            <button onClick={() => { setView('leads'); setDetail(null); }}
+              className={`flex-1 py-1.5 rounded-lg text-xs font-body transition ${view === 'leads' && !detail ? 'bg-stone-800 text-stone-100' : 'text-stone-500'}`}>
+              Lead consigliati
+            </button>
+            <button onClick={() => { setView('matrix'); setDetail(null); }}
+              className={`flex-1 py-1.5 rounded-lg text-xs font-body transition ${view === 'matrix' && !detail ? 'bg-stone-800 text-stone-100' : 'text-stone-500'}`}>
+              Matrice 1v1
+            </button>
+          </div>
+
+          {detail ? (
+            <MatchupDetail
+              me={team[detail.meIdx]}
+              opp={opponentTeam[detail.oppIdx]}
+              result={detail.result}
+              onBack={() => setDetail(null)}
+            />
+          ) : view === 'leads' ? (
+            <>
+              {/* Ranking (top bringers) */}
+              <div>
+                <div className="font-mono text-[10px] text-stone-500 tracking-widest mb-2">ORDINE DI PORTATA (top 4)</div>
+                <div className="space-y-1.5">
+                  {ranking.slice(0, Math.min(4, ranking.length)).map((r, i) => (
+                    <div key={r.idx} className={`flex items-center gap-2 rounded-xl p-2 ${i < 4 ? 'bg-stone-900/60 border border-stone-800' : 'bg-stone-950/40'}`}>
+                      <span className="font-display text-lg text-amber-400 w-5 text-center">{i + 1}</span>
+                      {r.mon.spriteSmall && <img src={r.mon.spriteSmall} alt="" className="w-10 h-10 object-contain" />}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-body text-xs text-stone-200 truncate">{r.mon.displayName}</div>
+                        <div className="font-mono text-[9px] text-stone-500">
+                          best {r.best > 0 ? '+' : ''}{r.best} · worst {r.worst > 0 ? '+' : ''}{r.worst}
+                        </div>
+                      </div>
+                      <ScoreChip score={r.avg} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Lead pair suggestions */}
+              {leads.length > 0 && oppMembers.length >= 2 && (
+                <div>
+                  <div className="font-mono text-[10px] text-stone-500 tracking-widest mb-2">MIGLIORI LEAD (2 attivi, compositi)</div>
+                  <div className="space-y-2">
+                    {leads.slice(0, 3).map((lead, i) => {
+                      const a = team[lead.mA], b = team[lead.mB];
+                      return (
+                        <div key={i} className="bg-stone-900/60 border border-stone-800 rounded-xl p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className={`font-display text-lg ${i === 0 ? 'text-amber-400' : 'text-stone-400'} w-5 text-center`}>{i + 1}</span>
+                            <div className="flex items-center gap-3 flex-1">
+                              <div className="text-center">
+                                {a.spriteSmall && <img src={a.spriteSmall} alt="" className="w-12 h-12" />}
+                                <div className="font-body text-[10px] text-stone-300 truncate max-w-[70px]">{a.displayName}</div>
+                              </div>
+                              <span className="font-mono text-xs text-stone-600">+</span>
+                              <div className="text-center">
+                                {b.spriteSmall && <img src={b.spriteSmall} alt="" className="w-12 h-12" />}
+                                <div className="font-body text-[10px] text-stone-300 truncate max-w-[70px]">{b.displayName}</div>
+                              </div>
+                            </div>
+                            <ScoreChip score={lead.composite} />
+                          </div>
+                          <div className="font-mono text-[9px] text-stone-500 flex justify-between">
+                            <span>media {lead.avg > 0 ? '+' : ''}{lead.avg}</span>
+                            <span>worst-case {lead.worst > 0 ? '+' : ''}{lead.worst}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="font-mono text-[9px] text-stone-600 mt-2 italic">
+                    Score = avg 70% + worst-case 30% (pesato per gestire il rischio)
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            /* Matrix view */
+            <div>
+              <div className="font-mono text-[10px] text-stone-500 tracking-widest mb-2">MATRICE 1v1 (tap per dettagli)</div>
+              <div className="overflow-x-auto scrollbar -mx-4 px-4">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr>
+                      <th className="p-1"></th>
+                      {oppMembers.map(({ m, i }) => (
+                        <th key={i} className="p-1">
+                          {m.spriteSmall && <img src={m.spriteSmall} alt="" className="w-10 h-10 mx-auto" title={m.displayName} />}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {myMembers.map(({ m, i: mi }) => (
+                      <tr key={mi}>
+                        <td className="p-1 text-right">
+                          {m.spriteSmall && <img src={m.spriteSmall} alt="" className="w-10 h-10 inline-block" title={m.displayName} />}
+                        </td>
+                        {oppMembers.map(({ i: oi }) => {
+                          const r = grid?.[mi]?.[oi];
+                          if (!r) return <td key={oi}></td>;
+                          return (
+                            <td key={oi} className="p-0.5">
+                              <button
+                                onClick={() => setDetail({ meIdx: mi, oppIdx: oi, result: r })}
+                                className="w-full"
+                              >
+                                <ScoreChip score={r.score} compact />
+                              </button>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+   MAIN APP
+   ============================================================ */
+function App() {
+  const [team, setTeam] = useState(() => Array(6).fill(null));
+  const [opponentTeam, setOpponentTeam] = useState(() => Array(6).fill(null));
+  const [editIndex, setEditIndex] = useState(null);
+  const [editOppIndex, setEditOppIndex] = useState(null);
+  const [tab, setTab] = useState('team'); // team | calc | matchup | analysis
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchSlotIndex, setSearchSlotIndex] = useState(null);
+  const [searchTarget, setSearchTarget] = useState('own'); // 'own' | 'opp'
+  const [moveData, setMoveData] = useState({}); // name -> full move object
+  const [loaded, setLoaded] = useState(false);
+
+  // Load from storage
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await window.storage.get('team');
+        if (res?.value) {
+          const parsed = JSON.parse(res.value);
+          const migrated = parsed.map(s => s ? { ...s, teraType: s.teraType || s.types?.[0] || 'normal' } : null);
+          setTeam(migrated);
+        }
+        const oppRes = await window.storage.get('opponentTeam');
+        if (oppRes?.value) {
+          const parsed = JSON.parse(oppRes.value);
+          const migrated = parsed.map(s => s ? { ...s, teraType: s.teraType || s.types?.[0] || 'normal' } : null);
+          setOpponentTeam(migrated);
+        }
+      } catch { /* empty */ }
+      setLoaded(true);
+    })();
+  }, []);
+
+  // Persist
+  useEffect(() => {
+    if (!loaded) return;
+    (async () => {
+      try {
+        await window.storage.set('team', JSON.stringify(team));
+        await window.storage.set('opponentTeam', JSON.stringify(opponentTeam));
+      } catch { /* noop */ }
+    })();
+  }, [team, opponentTeam, loaded]);
+
+  // Fetch full move data for analysis + calc + matchup
+  useEffect(() => {
+    const allMoves = new Set();
+    [...team, ...opponentTeam].forEach(m => { if (m) (m.moves || []).forEach(mv => mv && allMoves.add(mv)); });
+    const missing = [...allMoves].filter(m => !(m in moveData));
+    if (missing.length === 0) return;
+    (async () => {
+      const entries = await Promise.all(missing.map(async m => [m, await fetchMove(m)]));
+      setMoveData(prev => {
+        const next = { ...prev };
+        for (const [m, d] of entries) next[m] = d;
+        return next;
+      });
+    })();
+  }, [team, opponentTeam]);
+
+  async function ensureMove(name) {
+    if (moveData[name]) return;
+    const d = await fetchMove(name);
+    setMoveData(prev => ({ ...prev, [name]: d }));
+  }
+
+  function openSearch(slotIndex, target = 'own') {
+    setSearchSlotIndex(slotIndex);
+    setSearchTarget(target);
+    setSearchOpen(true);
+  }
+
+  function addPokemon(pkm) {
+    const newSlot = {
+      ...pkm,
+      nickname: '',
+      level: 50,
+      ability: pkm.abilities[0]?.name || '',
+      item: 'None',
+      nature: 'Hardy',
+      teraType: pkm.types[0],
+      evs: { ...EMPTY_EVS },
+      ivs: { ...PERFECT_IVS },
+      moves: [null, null, null, null],
+    };
+    const isOpp = searchTarget === 'opp';
+    const currentTeam = isOpp ? opponentTeam : team;
+    const setCurrent = isOpp ? setOpponentTeam : setTeam;
+    const idx = searchSlotIndex ?? currentTeam.findIndex(s => !s);
+    if (idx < 0) return;
+    const next = [...currentTeam];
+    next[idx] = newSlot;
+    setCurrent(next);
+    if (isOpp) setEditOppIndex(idx);
+    else setEditIndex(idx);
+  }
+
+  function updateSlot(idx, patch) {
+    const next = [...team];
+    next[idx] = patch;
+    setTeam(next);
+  }
+
+  function updateOppSlot(idx, patch) {
+    const next = [...opponentTeam];
+    next[idx] = patch;
+    setOpponentTeam(next);
+  }
+
+  function removeSlot(idx) {
+    const next = [...team];
+    next[idx] = null;
+    setTeam(next);
+  }
+
+  function removeOppSlot(idx) {
+    const next = [...opponentTeam];
+    next[idx] = null;
+    setOpponentTeam(next);
+  }
+
+  const editingSlot = editIndex !== null ? team[editIndex] : null;
+  const editingOppSlot = editOppIndex !== null ? opponentTeam[editOppIndex] : null;
+
+  return (
+    <div className="min-h-screen noise-bg font-body text-stone-200">
+      <style>{FONT_STYLES}</style>
+
+      <div className="relative z-10 max-w-md mx-auto px-4 pb-24 pt-6">
+        {/* Header */}
+        <header className="mb-6 flex items-end justify-between">
+          <div>
+            <div className="font-mono text-[10px] text-amber-500/70 tracking-[0.3em]">TRAINER · v1</div>
+            <h1 className="font-display text-4xl text-stone-50 leading-none mt-1">
+              Pokémon <span className="text-amber-400">Team</span>
+            </h1>
+          </div>
+          <Sparkles size={20} className="text-amber-500/60 mb-1" />
+        </header>
+
+        {/* Content */}
+        {editingSlot ? (
+          <PokemonEditor
+            slot={editingSlot}
+            onChange={patch => updateSlot(editIndex, patch)}
+            onClose={() => setEditIndex(null)}
+          />
+        ) : editingOppSlot ? (
+          <PokemonEditor
+            slot={editingOppSlot}
+            onChange={patch => updateOppSlot(editOppIndex, patch)}
+            onClose={() => setEditOppIndex(null)}
+          />
+        ) : (
+          <>
+            {/* Tabs */}
+            <div className="flex gap-0.5 bg-stone-900/60 border border-stone-800 rounded-xl p-1 mb-5">
+              <button
+                onClick={() => setTab('team')}
+                className={`flex-1 py-2 rounded-lg text-[11px] font-body transition ${tab === 'team' ? 'bg-stone-800 text-stone-100' : 'text-stone-500'}`}
+              >
+                <span className="inline-flex items-center gap-1"><Swords size={11} /> Team</span>
+              </button>
+              <button
+                onClick={() => setTab('calc')}
+                className={`flex-1 py-2 rounded-lg text-[11px] font-body transition ${tab === 'calc' ? 'bg-stone-800 text-stone-100' : 'text-stone-500'}`}
+              >
+                <span className="inline-flex items-center gap-1"><Calculator size={11} /> Calc</span>
+              </button>
+              <button
+                onClick={() => setTab('matchup')}
+                className={`flex-1 py-2 rounded-lg text-[11px] font-body transition ${tab === 'matchup' ? 'bg-stone-800 text-stone-100' : 'text-stone-500'}`}
+              >
+                <span className="inline-flex items-center gap-1"><Target size={11} /> Matchup</span>
+              </button>
+              <button
+                onClick={() => setTab('analysis')}
+                className={`flex-1 py-2 rounded-lg text-[11px] font-body transition ${tab === 'analysis' ? 'bg-stone-800 text-stone-100' : 'text-stone-500'}`}
+              >
+                <span className="inline-flex items-center gap-1"><Shield size={11} /> Analisi</span>
+              </button>
+            </div>
+
+            {tab === 'team' && (
+              <div>
+                <div className="grid grid-cols-2 gap-3">
+                  {team.map((slot, i) => (
+                    <TeamSlot
+                      key={i}
+                      slot={slot}
+                      index={i}
+                      onClick={() => slot ? setEditIndex(i) : openSearch(i, 'own')}
+                      onRemove={() => removeSlot(i)}
+                    />
+                  ))}
+                </div>
+                <button
+                  onClick={() => openSearch(null, 'own')}
+                  disabled={!team.some(s => !s)}
+                  className="w-full mt-5 bg-amber-500 hover:bg-amber-400 disabled:bg-stone-800 disabled:text-stone-600 text-stone-950 font-body font-semibold py-3 rounded-xl flex items-center justify-center gap-2"
+                >
+                  <Plus size={16} /> aggiungi Pokémon
+                </button>
+              </div>
+            )}
+
+            {tab === 'calc' && <DamageCalculator team={team} moveData={moveData} ensureMove={ensureMove} />}
+
+            {tab === 'matchup' && (
+              <MatchupSimulator
+                team={team}
+                opponentTeam={opponentTeam}
+                moveData={moveData}
+                ensureMove={ensureMove}
+                openOppSearch={(idx) => openSearch(idx, 'opp')}
+                onEditOpp={(idx) => setEditOppIndex(idx)}
+                onRemoveOpp={removeOppSlot}
+              />
+            )}
+
+            {tab === 'analysis' && <AnalysisPanel team={team} moveData={moveData} />}
+          </>
+        )}
+      </div>
+
+      <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} onSelect={addPokemon} />
+    </div>
+  );
+}
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
