@@ -8,6 +8,22 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            amber: {
+              '400': '#EA6D8E',
+              '500': '#E8557D',
+              '600': '#D44470',
+              '900': '#2D1520',
+            }
+          }
+        }
+      }
+    };
+  </script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -81,14 +97,19 @@ const FONT_STYLES = `
   .font-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
 
   .noise-bg {
-    background-color: #0a0908;
+    background-color: #0d0d1a;
     background-image:
-      radial-gradient(circle at 20% 10%, rgba(255,184,0,0.04) 0%, transparent 40%),
-      radial-gradient(circle at 80% 90%, rgba(210,70,70,0.04) 0%, transparent 40%);
+      radial-gradient(circle at 18% 12%, rgba(232,85,125,0.09) 0%, transparent 38%),
+      radial-gradient(circle at 82% 88%, rgba(74,197,197,0.07) 0%, transparent 38%),
+      radial-gradient(circle at 50% 50%, rgba(90,70,180,0.04) 0%, transparent 60%);
   }
   .noise-bg::before {
-    content: ''; position: fixed; inset: 0; pointer-events: none; opacity: 0.04; z-index: 0;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence baseFrequency='0.9'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    opacity: 0.022;
+    background-image:
+      linear-gradient(rgba(232,85,125,1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(232,85,125,1) 1px, transparent 1px);
+    background-size: 48px 48px;
   }
 
   .scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -108,7 +129,7 @@ const FONT_STYLES = `
 const TYPES = ['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy'];
 
 const TYPE_COLORS = {
-  normal: '#9099a1', fire: '#f57d3a', water: '#4a90dd', electric: '#f6c744',
+  normal: '#9099a1', fire: '#f57d3a', water: '#4a90dd', electric: '#E8557D',
   grass: '#64b95e', ice: '#7cd1d7', fighting: '#c7332f', poison: '#a044a0',
   ground: '#d4a84b', flying: '#9facde', psychic: '#ed5e8c', bug: '#a4b735',
   rock: '#b7a24e', ghost: '#6a5ba0', dragon: '#5a4ad1', dark: '#4f4239',
@@ -252,6 +273,142 @@ const PERFECT_IVS = { hp:31, atk:31, def:31, spa:31, spd:31, spe:31 };
 const EV_TOTAL_MAX = 508;
 const EV_PER_STAT_MAX = 252;
 
+/* ============================================================
+   PRESET MATCHUPS — archetipi meta VGC 2026
+   ============================================================ */
+const PRESET_MATCHUPS = [
+  {
+    id: 'rain-kyogre',
+    name: 'Pioggia Kyogre',
+    desc: 'Water Spout + Drizzle, la minaccia più diffusa del meta',
+    color: '#3b9bdd',
+    mons: [
+      { name: 'kyogre',       ability: 'drizzle',          item: 'Choice Scarf',    nature: 'Modest',  moves: ['water-spout','origin-pulse','thunder','ice-beam'],          evs: {hp:4,atk:0,def:0,spa:252,spd:0,spe:252} },
+      { name: 'pelipper',     ability: 'drizzle',          item: 'Damp Rock',       nature: 'Bold',    moves: ['hurricane','tailwind','wide-guard','rain-dance'],            evs: {hp:252,atk:0,def:252,spa:0,spd:4,spe:0} },
+      { name: 'palafin',      ability: 'zero-to-hero',     item: 'Choice Band',     nature: 'Adamant', moves: ['wave-crash','jet-punch','close-combat','flip-turn'],         evs: {hp:4,atk:252,def:0,spa:0,spd:0,spe:252} },
+      { name: 'iron-hands',   ability: 'quark-drive',      item: 'Assault Vest',    nature: 'Adamant', moves: ['fake-out','drain-punch','wild-charge','heavy-slam'],         evs: {hp:252,atk:252,def:4,spa:0,spd:0,spe:0} },
+      { name: 'incineroar',   ability: 'intimidate',       item: 'Rocky Helmet',    nature: 'Careful', moves: ['fake-out','parting-shot','flare-blitz','knock-off'],         evs: {hp:252,atk:0,def:4,spa:0,spd:252,spe:0} },
+      { name: 'amoonguss',    ability: 'regenerator',      item: 'Rocky Helmet',    nature: 'Calm',    moves: ['spore','rage-powder','pollen-puff','protect'],               evs: {hp:252,atk:0,def:100,spa:0,spd:156,spe:0} },
+    ]
+  },
+  {
+    id: 'sun-groudon',
+    name: 'Sole Groudon',
+    desc: 'Drought + Chlorophyll, Eruption nello slot 1',
+    color: '#e07030',
+    mons: [
+      { name: 'groudon',      ability: 'drought',          item: 'Clear Amulet',    nature: 'Adamant', moves: ['precipice-blades','fire-punch','rock-slide','protect'],      evs: {hp:252,atk:252,def:4,spa:0,spd:0,spe:0} },
+      { name: 'torkoal',      ability: 'drought',          item: 'Heat Rock',       nature: 'Quiet',   moves: ['eruption','flamethrower','earth-power','yawn'],              evs: {hp:252,atk:0,def:252,spa:4,spd:0,spe:0} },
+      { name: 'venusaur',     ability: 'chlorophyll',      item: 'Life Orb',        nature: 'Modest',  moves: ['earth-power','leaf-storm','sleep-powder','protect'],         evs: {hp:4,atk:0,def:0,spa:252,spd:0,spe:252} },
+      { name: 'flutter-mane', ability: 'protosynthesis',   item: 'Booster Energy',  nature: 'Modest',  moves: ['moonblast','shadow-ball','dazzling-gleam','protect'],        evs: {hp:4,atk:0,def:0,spa:252,spd:0,spe:252} },
+      { name: 'incineroar',   ability: 'intimidate',       item: 'Rocky Helmet',    nature: 'Careful', moves: ['fake-out','parting-shot','flare-blitz','knock-off'],         evs: {hp:252,atk:0,def:4,spa:0,spd:252,spe:0} },
+      { name: 'grimmsnarl',   ability: 'prankster',        item: 'Light Clay',      nature: 'Careful', moves: ['reflect','light-screen','thunder-wave','spirit-break'],      evs: {hp:252,atk:0,def:4,spa:0,spd:252,spe:0} },
+    ]
+  },
+  {
+    id: 'trick-room',
+    name: 'Sala Trucchi',
+    desc: 'Hatterene TR + Ursaluna Bloodmoon, lo speed control più pericoloso',
+    color: '#9966cc',
+    mons: [
+      { name: 'hatterene',    ability: 'magic-bounce',     item: 'Life Orb',        nature: 'Quiet',   moves: ['trick-room','psychic','dazzling-gleam','mystical-fire'],    evs: {hp:252,atk:0,def:4,spa:252,spd:0,spe:0}, ivs: {hp:31,atk:0,def:31,spa:31,spd:31,spe:0} },
+      { name: 'ursaluna-bloodmoon', ability: 'minds-eye',  item: 'Assault Vest',    nature: 'Quiet',   moves: ['blood-moon','hyper-voice','earth-power','protect'],         evs: {hp:252,atk:0,def:4,spa:252,spd:0,spe:0}, ivs: {hp:31,atk:0,def:31,spa:31,spd:31,spe:0} },
+      { name: 'porygon2',     ability: 'trace',            item: 'Eviolite',        nature: 'Quiet',   moves: ['trick-room','recover','ice-beam','thunderbolt'],            evs: {hp:252,atk:0,def:4,spa:252,spd:0,spe:0}, ivs: {hp:31,atk:0,def:31,spa:31,spd:31,spe:0} },
+      { name: 'dusclops',     ability: 'pressure',         item: 'Eviolite',        nature: 'Sassy',   moves: ['trick-room','helping-hand','night-shade','protect'],        evs: {hp:252,atk:0,def:252,spa:0,spd:4,spe:0}, ivs: {hp:31,atk:0,def:31,spa:31,spd:31,spe:0} },
+      { name: 'iron-hands',   ability: 'quark-drive',      item: 'Assault Vest',    nature: 'Brave',   moves: ['fake-out','drain-punch','wild-charge','heavy-slam'],         evs: {hp:252,atk:252,def:4,spa:0,spd:0,spe:0}, ivs: {hp:31,atk:31,def:31,spa:31,spd:31,spe:0} },
+      { name: 'amoonguss',    ability: 'regenerator',      item: 'Rocky Helmet',    nature: 'Sassy',   moves: ['spore','rage-powder','pollen-puff','protect'],               evs: {hp:252,atk:0,def:100,spa:0,spd:156,spe:0}, ivs: {hp:31,atk:0,def:31,spa:31,spd:31,spe:0} },
+    ]
+  },
+  {
+    id: 'miraidon-elec',
+    name: 'Electric Terrain',
+    desc: 'Miraidon + Iron Hands, terreno elettrico + Quark Drive',
+    color: '#f0c040',
+    mons: [
+      { name: 'miraidon',     ability: 'hadron-engine',    item: 'Choice Specs',    nature: 'Modest',  moves: ['electro-drift','draco-meteor','volt-switch','overheat'],    evs: {hp:4,atk:0,def:0,spa:252,spd:0,spe:252} },
+      { name: 'iron-hands',   ability: 'quark-drive',      item: 'Assault Vest',    nature: 'Adamant', moves: ['fake-out','drain-punch','wild-charge','heavy-slam'],         evs: {hp:252,atk:252,def:4,spa:0,spd:0,spe:0} },
+      { name: 'rillaboom',    ability: 'grassy-surge',     item: 'Choice Band',     nature: 'Adamant', moves: ['grassy-glide','wood-hammer','knock-off','fake-out'],         evs: {hp:4,atk:252,def:0,spa:0,spd:0,spe:252} },
+      { name: 'flutter-mane', ability: 'protosynthesis',   item: 'Booster Energy',  nature: 'Timid',   moves: ['moonblast','shadow-ball','mystical-fire','protect'],         evs: {hp:4,atk:0,def:0,spa:252,spd:0,spe:252} },
+      { name: 'incineroar',   ability: 'intimidate',       item: 'Rocky Helmet',    nature: 'Careful', moves: ['fake-out','parting-shot','flare-blitz','knock-off'],         evs: {hp:252,atk:0,def:4,spa:0,spd:252,spe:0} },
+      { name: 'tornadus-therian', ability: 'regenerator',  item: 'Covert Cloak',    nature: 'Timid',   moves: ['tailwind','bleakwind-storm','heat-wave','protect'],          evs: {hp:4,atk:0,def:0,spa:252,spd:0,spe:252} },
+    ]
+  },
+  {
+    id: 'calyrex-shadow',
+    name: 'Calyrex-Shadow',
+    desc: 'Astre spectral speed control, il restricted più pericoloso',
+    color: '#cc44aa',
+    mons: [
+      { name: 'calyrex-shadow-rider', ability: 'as-one-with-spectrier', item: 'Life Orb',  nature: 'Timid',  moves: ['astral-barrage','psyshock','energy-ball','protect'],      evs: {hp:4,atk:0,def:0,spa:252,spd:0,spe:252} },
+      { name: 'rillaboom',    ability: 'grassy-surge',     item: 'Assault Vest',    nature: 'Adamant', moves: ['grassy-glide','wood-hammer','knock-off','fake-out'],         evs: {hp:68,atk:252,def:0,spa:0,spd:188,spe:0} },
+      { name: 'urshifu',      ability: 'unseen-fist',      item: 'Choice Band',     nature: 'Adamant', moves: ['wicked-blow','close-combat','sucker-punch','u-turn'],        evs: {hp:4,atk:252,def:0,spa:0,spd:0,spe:252} },
+      { name: 'incineroar',   ability: 'intimidate',       item: 'Rocky Helmet',    nature: 'Careful', moves: ['fake-out','parting-shot','flare-blitz','knock-off'],         evs: {hp:252,atk:0,def:4,spa:0,spd:252,spe:0} },
+      { name: 'grimmsnarl',   ability: 'prankster',        item: 'Light Clay',      nature: 'Careful', moves: ['reflect','light-screen','thunder-wave','spirit-break'],      evs: {hp:252,atk:0,def:4,spa:0,spd:252,spe:0} },
+      { name: 'amoonguss',    ability: 'regenerator',      item: 'Rocky Helmet',    nature: 'Calm',    moves: ['spore','rage-powder','pollen-puff','protect'],               evs: {hp:252,atk:0,def:100,spa:0,spd:156,spe:0} },
+    ]
+  },
+  {
+    id: 'koraidon-sun',
+    name: 'Koraidon Sole',
+    desc: 'Orichalcum Pulse + Sun team, attacco fisico massimizzato',
+    color: '#cc5522',
+    mons: [
+      { name: 'koraidon',     ability: 'orichalcum-pulse', item: 'Clear Amulet',    nature: 'Adamant', moves: ['collision-course','flare-blitz','rock-slide','protect'],     evs: {hp:4,atk:252,def:0,spa:0,spd:0,spe:252} },
+      { name: 'torkoal',      ability: 'drought',          item: 'Heat Rock',       nature: 'Quiet',   moves: ['eruption','flamethrower','earth-power','yawn'],              evs: {hp:252,atk:0,def:252,spa:4,spd:0,spe:0} },
+      { name: 'flutter-mane', ability: 'protosynthesis',   item: 'Booster Energy',  nature: 'Modest',  moves: ['moonblast','shadow-ball','dazzling-gleam','protect'],        evs: {hp:4,atk:0,def:0,spa:252,spd:0,spe:252} },
+      { name: 'incineroar',   ability: 'intimidate',       item: 'Rocky Helmet',    nature: 'Careful', moves: ['fake-out','parting-shot','flare-blitz','knock-off'],         evs: {hp:252,atk:0,def:4,spa:0,spd:252,spe:0} },
+      { name: 'urshifu',      ability: 'unseen-fist',      item: 'Choice Band',     nature: 'Jolly',   moves: ['wicked-blow','close-combat','sucker-punch','u-turn'],        evs: {hp:4,atk:252,def:0,spa:0,spd:0,spe:252} },
+      { name: 'grimmsnarl',   ability: 'prankster',        item: 'Light Clay',      nature: 'Careful', moves: ['reflect','light-screen','thunder-wave','spirit-break'],      evs: {hp:252,atk:0,def:4,spa:0,spd:252,spe:0} },
+    ]
+  },
+  {
+    id: 'fwg-balance',
+    name: 'FWG Balance',
+    desc: 'Fuoco-Acqua-Erba core + support, team equilibrato classico',
+    color: '#44aa66',
+    mons: [
+      { name: 'urshifu-rapid-strike', ability: 'unseen-fist', item: 'Choice Band', nature: 'Adamant', moves: ['surging-strikes','close-combat','aqua-jet','u-turn'],        evs: {hp:4,atk:252,def:0,spa:0,spd:0,spe:252} },
+      { name: 'rillaboom',    ability: 'grassy-surge',     item: 'Choice Band',     nature: 'Adamant', moves: ['grassy-glide','wood-hammer','knock-off','fake-out'],         evs: {hp:4,atk:252,def:0,spa:0,spd:0,spe:252} },
+      { name: 'incineroar',   ability: 'intimidate',       item: 'Rocky Helmet',    nature: 'Careful', moves: ['fake-out','parting-shot','flare-blitz','knock-off'],         evs: {hp:252,atk:0,def:4,spa:0,spd:252,spe:0} },
+      { name: 'tornadus-therian', ability: 'regenerator',  item: 'Covert Cloak',    nature: 'Timid',   moves: ['tailwind','bleakwind-storm','heat-wave','protect'],          evs: {hp:4,atk:0,def:0,spa:252,spd:0,spe:252} },
+      { name: 'garchomp',     ability: 'rough-skin',       item: 'Rocky Helmet',    nature: 'Jolly',   moves: ['earthquake','rock-slide','protect','stone-edge'],            evs: {hp:4,atk:252,def:0,spa:0,spd:0,spe:252} },
+      { name: 'grimmsnarl',   ability: 'prankster',        item: 'Light Clay',      nature: 'Careful', moves: ['reflect','light-screen','thunder-wave','spirit-break'],      evs: {hp:252,atk:0,def:4,spa:0,spd:252,spe:0} },
+    ]
+  },
+  {
+    id: 'sand-rush',
+    name: 'Sabbia Rush',
+    desc: 'Tyranitar + Excadrill, raddoppia la velocità in Sand Rush',
+    color: '#aa7744',
+    mons: [
+      { name: 'tyranitar',    ability: 'sand-stream',      item: 'Choice Band',     nature: 'Adamant', moves: ['rock-slide','crunch','earthquake','protect'],                evs: {hp:252,atk:252,def:4,spa:0,spd:0,spe:0} },
+      { name: 'excadrill',    ability: 'sand-rush',        item: 'Life Orb',        nature: 'Adamant', moves: ['iron-head','rock-slide','earthquake','protect'],             evs: {hp:4,atk:252,def:0,spa:0,spd:0,spe:252} },
+      { name: 'landorus-therian', ability: 'intimidate',   item: 'Assault Vest',    nature: 'Jolly',   moves: ['earthquake','rock-slide','knock-off','u-turn'],              evs: {hp:188,atk:68,def:4,spa:0,spd:188,spe:60} },
+      { name: 'urshifu',      ability: 'unseen-fist',      item: 'Choice Band',     nature: 'Adamant', moves: ['wicked-blow','close-combat','sucker-punch','u-turn'],        evs: {hp:4,atk:252,def:0,spa:0,spd:0,spe:252} },
+      { name: 'incineroar',   ability: 'intimidate',       item: 'Rocky Helmet',    nature: 'Careful', moves: ['fake-out','parting-shot','flare-blitz','knock-off'],         evs: {hp:252,atk:0,def:4,spa:0,spd:252,spe:0} },
+      { name: 'grimmsnarl',   ability: 'prankster',        item: 'Light Clay',      nature: 'Careful', moves: ['reflect','light-screen','thunder-wave','spirit-break'],      evs: {hp:252,atk:0,def:4,spa:0,spd:252,spe:0} },
+    ]
+  },
+];
+
+/* Crea uno slot completo da un preset-mon + dati PokéAPI */
+async function buildPresetSlot(mon) {
+  const pkm = await fetchPokemon(mon.name);
+  const abilityObj = pkm.abilities.find(a => a.name === mon.ability) || pkm.abilities[0];
+  return {
+    ...pkm,
+    nickname: '',
+    level: 50,
+    ability: abilityObj?.name || pkm.abilities[0]?.name || '',
+    item: mon.item || 'None',
+    nature: mon.nature || 'Hardy',
+    teraType: pkm.types[0],
+    evs: { ...EMPTY_EVS, ...(mon.evs || {}) },
+    ivs: { ...PERFECT_IVS, ...(mon.ivs || {}) },
+    moves: (mon.moves || [null,null,null,null]).slice(0,4).map(m => m || null),
+  };
+}
+
 function titleCase(s) {
   if (!s) return '';
   return s.split(/[-_ ]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
@@ -386,14 +543,22 @@ function SectionTitle({ children, right }) {
 
 /* ------------------------------------------------------------ */
 function TeamSlot({ slot, index, onClick, onRemove }) {
+  const PINK = '#E8557D';
   if (!slot) {
     return (
       <button
         onClick={onClick}
-        className="aspect-[3/4] border border-dashed border-stone-700 rounded-xl flex flex-col items-center justify-center gap-2 text-stone-500 hover:border-amber-500/50 hover:text-amber-400 hover:bg-amber-500/5 transition-colors"
+        className="aspect-[3/4] rounded-xl flex flex-col items-center justify-center gap-2 transition-all"
+        style={{
+          border: `1px dashed rgba(232,85,125,0.25)`,
+          color: 'rgba(232,85,125,0.35)',
+          background: 'rgba(12,12,22,0.7)',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor='rgba(232,85,125,0.55)'; e.currentTarget.style.color='rgba(232,85,125,0.75)'; e.currentTarget.style.background='rgba(232,85,125,0.05)'; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor='rgba(232,85,125,0.25)'; e.currentTarget.style.color='rgba(232,85,125,0.35)'; e.currentTarget.style.background='rgba(12,12,22,0.7)'; }}
       >
-        <Plus size={20} strokeWidth={1.5} />
-        <span className="font-mono text-[10px] tracking-widest">SLOT {index + 1}</span>
+        <Plus size={18} strokeWidth={1.5} />
+        <span className="font-mono text-[9px] tracking-[0.25em]">SLOT {index + 1}</span>
       </button>
     );
   }
@@ -401,24 +566,38 @@ function TeamSlot({ slot, index, onClick, onRemove }) {
   return (
     <button
       onClick={onClick}
-      className="relative aspect-[3/4] rounded-xl overflow-hidden border border-stone-800 hover:border-stone-600 transition-all bg-stone-900/50 text-left group"
-      style={{ boxShadow: `inset 0 0 0 1px ${primaryColor}30` }}
+      className="relative aspect-[3/4] rounded-xl overflow-hidden text-left group transition-all"
+      style={{
+        background: 'rgba(10,10,20,0.95)',
+        border: `1px solid ${primaryColor}40`,
+        boxShadow: `0 0 18px ${primaryColor}10, inset 0 0 0 1px ${primaryColor}18`,
+      }}
     >
-      <div className="absolute inset-0 opacity-20" style={{ background: `radial-gradient(circle at 50% 30%, ${primaryColor} 0%, transparent 60%)` }} />
+      {/* tipo glow bg */}
+      <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse at 50% 20%, ${primaryColor}22 0%, transparent 65%)` }} />
+      {/* Porygon grid overlay */}
+      <div className="absolute inset-0 opacity-[0.03]" style={{
+        backgroundImage: `linear-gradient(${primaryColor} 1px, transparent 1px), linear-gradient(90deg, ${primaryColor} 1px, transparent 1px)`,
+        backgroundSize: '20px 20px',
+      }} />
+      {/* remove btn */}
       <div
         onClick={(e) => { e.stopPropagation(); onRemove(); }}
-        className="absolute top-1.5 right-1.5 w-6 h-6 flex items-center justify-center rounded-md bg-black/40 hover:bg-red-500/50 text-stone-400 hover:text-white opacity-0 group-hover:opacity-100 transition cursor-pointer z-10"
+        className="absolute top-1.5 right-1.5 w-6 h-6 flex items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 transition cursor-pointer z-10"
+        style={{background:'rgba(0,0,0,0.55)', border:'1px solid rgba(200,50,50,0.35)', color:'rgba(200,80,80,0.8)'}}
+        onMouseEnter={e => { e.currentTarget.style.background='rgba(180,40,40,0.55)'; e.currentTarget.style.color='white'; }}
+        onMouseLeave={e => { e.currentTarget.style.background='rgba(0,0,0,0.55)'; e.currentTarget.style.color='rgba(200,80,80,0.8)'; }}
       >
-        <X size={12} />
+        <X size={11} />
       </div>
-      <div className="relative z-[1] p-2 pt-3 flex flex-col h-full">
-        <div className="font-mono text-[9px] text-stone-500 tracking-widest">#{String(slot.id).padStart(3,'0')}</div>
+      <div className="relative z-[1] p-2.5 pt-3 flex flex-col h-full">
+        <div className="font-mono text-[9px] tracking-[0.2em]" style={{color:`${primaryColor}70`}}>#{String(slot.id).padStart(3,'0')}</div>
         <div className="flex-1 flex items-center justify-center">
-          {slot.sprite && <img src={slot.sprite} alt="" className="w-full h-auto max-h-[110px] object-contain drop-shadow-lg" />}
+          {slot.sprite && <img src={slot.sprite} alt="" className="w-full h-auto max-h-[110px] object-contain" style={{filter:`drop-shadow(0 4px 12px ${primaryColor}50)`}} />}
         </div>
         <div className="mt-auto">
-          <div className="font-display text-lg text-stone-100 leading-tight truncate">{slot.nickname || slot.displayName}</div>
-          <div className="flex gap-1 mt-1 flex-wrap">
+          <div className="font-display text-base text-stone-100 leading-tight truncate">{slot.nickname || slot.displayName}</div>
+          <div className="flex gap-1 mt-1.5 flex-wrap">
             {slot.types.map(t => <TypeBadge key={t} type={t} size="xs" />)}
           </div>
         </div>
@@ -476,7 +655,7 @@ function SearchOverlay({ open, onClose, onSelect }) {
             placeholder="Cerca Pokémon..."
             className="flex-1 bg-transparent text-stone-100 placeholder-stone-600 outline-none font-body"
           />
-          {loading && <Loader2 size={16} className="animate-spin text-amber-500" />}
+          {loading && <Loader2 size={16} className="animate-spin text-[#E8557D]" />}
           <button onClick={onClose} className="text-stone-500 hover:text-stone-300"><X size={18} /></button>
         </div>
         <div className="max-h-[60vh] overflow-y-auto scrollbar">
@@ -546,7 +725,7 @@ function EVEditor({ evs, baseStats, level, nature, onChange }) {
                   style={{ width: `${(ev / EV_PER_STAT_MAX) * 100}%`, backgroundColor: TYPE_COLORS[stat === 'atk' || stat === 'spa' ? 'fire' : stat === 'def' || stat === 'spd' ? 'steel' : stat === 'spe' ? 'electric' : 'grass'] }}
                 />
               </div>
-              <span className={`font-mono text-xs w-20 text-right ${natureNote === '+' ? 'text-amber-400' : natureNote === '−' ? 'text-red-400' : 'text-stone-200'}`}>
+              <span className={`font-mono text-xs w-20 text-right ${natureNote === '+' ? 'text-[#EA6D8E]' : natureNote === '−' ? 'text-red-400' : 'text-stone-200'}`}>
                 {finalStat}{natureNote && <span className="text-[10px] ml-0.5">{natureNote}</span>}
               </span>
             </div>
@@ -555,10 +734,10 @@ function EVEditor({ evs, baseStats, level, nature, onChange }) {
               <input
                 type="number" step={4} min={0} max={252} value={ev}
                 onChange={e => setEV(stat, parseInt(e.target.value) || 0)}
-                className="flex-1 bg-stone-900 text-center font-mono text-xs py-0.5 rounded text-stone-200 outline-none focus:ring-1 ring-amber-500"
+                className="flex-1 bg-stone-900 text-center font-mono text-xs py-0.5 rounded text-stone-200 outline-none focus:ring-1 ring-[#E8557D]"
               />
               <button onClick={() => setEV(stat, ev + 4)} className="w-6 h-5 text-[10px] font-mono bg-stone-900 hover:bg-stone-800 rounded text-stone-400">+4</button>
-              <button onClick={() => setEV(stat, 252)} className="w-10 h-5 text-[9px] font-mono bg-stone-900 hover:bg-amber-900/40 rounded text-stone-500">MAX</button>
+              <button onClick={() => setEV(stat, 252)} className="w-10 h-5 text-[9px] font-mono bg-stone-900 hover:bg-[#E8557D]/15 rounded text-stone-500">MAX</button>
             </div>
           </div>
         );
@@ -585,7 +764,7 @@ function MoveSlot({ move, availableMoves, onChange, onClear }) {
 
   if (editing) {
     return (
-      <div className="bg-stone-900 border border-amber-500/40 rounded-lg p-2 space-y-2">
+      <div className="bg-stone-900 border border-[#E8557D]/40 rounded-lg p-2 space-y-2">
         <div className="flex items-center gap-2">
           <Search size={14} className="text-stone-500" />
           <input autoFocus value={q} onChange={e => setQ(e.target.value)} placeholder="Cerca mossa..."
@@ -649,7 +828,7 @@ function PokemonEditor({ slot, onChange, onClose }) {
               value={slot.nickname || ''}
               onChange={e => update({ nickname: e.target.value })}
               placeholder="soprannome (opzionale)"
-              className="w-full mt-1 bg-transparent border-b border-stone-800 focus:border-amber-500/50 font-body text-sm text-stone-300 placeholder-stone-600 outline-none py-0.5"
+              className="w-full mt-1 bg-transparent border-b border-stone-800 focus:border-[#E8557D]/50 font-body text-sm text-stone-300 placeholder-stone-600 outline-none py-0.5"
             />
             <div className="flex gap-1 mt-2">{slot.types.map(t => <TypeBadge key={t} type={t} />)}</div>
           </div>
@@ -661,7 +840,7 @@ function PokemonEditor({ slot, onChange, onClose }) {
         <div>
           <label className="font-mono text-[10px] text-stone-500 tracking-widest">ABILITÀ</label>
           <select value={slot.ability || ''} onChange={e => update({ ability: e.target.value })}
-            className="w-full mt-1 bg-stone-900 border border-stone-800 rounded-lg px-2.5 py-2 text-sm text-stone-200 outline-none focus:border-amber-500/50">
+            className="w-full mt-1 bg-stone-900 border border-stone-800 rounded-lg px-2.5 py-2 text-sm text-stone-200 outline-none focus:border-[#E8557D]/50">
             <option value="">—</option>
             {slot.abilities.map(a => <option key={a.name} value={a.name}>{titleCase(a.name)}{a.hidden ? ' (H)' : ''}</option>)}
           </select>
@@ -669,14 +848,14 @@ function PokemonEditor({ slot, onChange, onClose }) {
         <div>
           <label className="font-mono text-[10px] text-stone-500 tracking-widest">OGGETTO</label>
           <select value={slot.item || 'None'} onChange={e => update({ item: e.target.value })}
-            className="w-full mt-1 bg-stone-900 border border-stone-800 rounded-lg px-2.5 py-2 text-sm text-stone-200 outline-none focus:border-amber-500/50">
+            className="w-full mt-1 bg-stone-900 border border-stone-800 rounded-lg px-2.5 py-2 text-sm text-stone-200 outline-none focus:border-[#E8557D]/50">
             {ITEMS.map(i => <option key={i} value={i}>{i}</option>)}
           </select>
         </div>
         <div>
           <label className="font-mono text-[10px] text-stone-500 tracking-widest">NATURA</label>
           <select value={slot.nature || 'Hardy'} onChange={e => update({ nature: e.target.value })}
-            className="w-full mt-1 bg-stone-900 border border-stone-800 rounded-lg px-2.5 py-2 text-sm text-stone-200 outline-none focus:border-amber-500/50">
+            className="w-full mt-1 bg-stone-900 border border-stone-800 rounded-lg px-2.5 py-2 text-sm text-stone-200 outline-none focus:border-[#E8557D]/50">
             {NATURES.map(n => (
               <option key={n[0]} value={n[0]}>
                 {n[0]}{n[1] ? ` (+${STAT_LABELS[n[1]]}/-${STAT_LABELS[n[2]]})` : ''}
@@ -688,7 +867,7 @@ function PokemonEditor({ slot, onChange, onClose }) {
           <label className="font-mono text-[10px] text-stone-500 tracking-widest">LIVELLO</label>
           <input type="number" min={1} max={100} value={level}
             onChange={e => update({ level: Math.max(1, Math.min(100, parseInt(e.target.value)||50)) })}
-            className="w-full mt-1 bg-stone-900 border border-stone-800 rounded-lg px-2.5 py-2 text-sm text-stone-200 outline-none focus:border-amber-500/50" />
+            className="w-full mt-1 bg-stone-900 border border-stone-800 rounded-lg px-2.5 py-2 text-sm text-stone-200 outline-none focus:border-[#E8557D]/50" />
         </div>
         <div className="col-span-2">
           <label className="font-mono text-[10px] text-stone-500 tracking-widest">TERA TYPE</label>
@@ -732,7 +911,7 @@ function PokemonEditor({ slot, onChange, onClose }) {
         </div>
       </div>
 
-      <button onClick={onClose} className="w-full bg-amber-500 hover:bg-amber-400 text-stone-950 font-body font-semibold py-3 rounded-xl flex items-center justify-center gap-2">
+      <button onClick={onClose} className="w-full bg-[#E8557D] hover:bg-[#EA6D8E] text-stone-950 font-body font-semibold py-3 rounded-xl flex items-center justify-center gap-2">
         <ChevronLeft size={16} /> torna al team
       </button>
     </div>
@@ -823,7 +1002,7 @@ function AnalysisPanel({ team, moveData }) {
   }
 
   const { defensive, offensive, riskScore, issues, memberCount } = analysis;
-  const riskColor = riskScore < 20 ? '#64b95e' : riskScore < 50 ? '#f6c744' : '#c7332f';
+  const riskColor = riskScore < 20 ? '#64b95e' : riskScore < 50 ? '#E8557D' : '#c7332f';
 
   return (
     <div className="space-y-5 fade-up">
@@ -851,7 +1030,7 @@ function AnalysisPanel({ team, moveData }) {
           <div className="mt-4 space-y-2">
             {issues.map((iss, i) => (
               <div key={i} className="flex items-start gap-2 text-xs font-body">
-                <AlertTriangle size={12} className={`mt-0.5 ${iss.level === 'high' ? 'text-red-400' : iss.level === 'med' ? 'text-amber-400' : 'text-stone-500'}`} />
+                <AlertTriangle size={12} className={`mt-0.5 ${iss.level === 'high' ? 'text-red-400' : iss.level === 'med' ? 'text-[#EA6D8E]' : 'text-stone-500'}`} />
                 <span className="text-stone-300">{iss.text}</span>
               </div>
             ))}
@@ -891,13 +1070,13 @@ function AnalysisPanel({ team, moveData }) {
               <div key={t} className={`bg-stone-900/50 border rounded-lg p-2 ${
                 status === 'hit' ? 'border-emerald-500/50' :
                 status === 'neutral' ? 'border-stone-800' :
-                status === 'resisted' ? 'border-amber-500/30' : 'border-red-500/40'
+                status === 'resisted' ? 'border-[#E8557D]/30' : 'border-red-500/40'
               }`}>
                 <TypeBadge type={t} size="xs" />
                 <div className="mt-1 font-mono text-[10px]">
                   {status === 'hit' && <span className="text-emerald-400">×{o.best}</span>}
                   {status === 'neutral' && <span className="text-stone-500">×1</span>}
-                  {status === 'resisted' && <span className="text-amber-400">×{o.best}</span>}
+                  {status === 'resisted' && <span className="text-[#EA6D8E]">×{o.best}</span>}
                   {status === 'none' && <span className="text-red-400">nessuna</span>}
                 </div>
               </div>
@@ -1413,7 +1592,7 @@ function Toggle({ active, onClick, children, color='amber' }) {
           ? `bg-${color}-500/15 border-${color}-500/50 text-${color}-300`
           : 'bg-stone-900 border-stone-800 text-stone-500'
       }`}
-      style={active ? { backgroundColor:'rgba(246,199,68,0.12)', borderColor:'rgba(246,199,68,0.4)', color:'#f6c744' } : undefined}
+      style={active ? { backgroundColor:'rgba(232,85,125,0.12)', borderColor:'rgba(232,85,125,0.4)', color:'#E8557D' } : undefined}
     >
       {children}
     </button>
@@ -1655,7 +1834,7 @@ function DamageCalculator({ team, moveData, ensureMove }) {
                 setMegaActive(false);
               }}
               className={`flex-shrink-0 w-20 rounded-xl p-1.5 border transition ${
-                attackerIdx === i ? 'border-amber-500 bg-amber-500/5' : 'border-stone-800 bg-stone-900/50'
+                attackerIdx === i ? 'border-[#E8557D] bg-[#E8557D]/5' : 'border-stone-800 bg-stone-900/50'
               }`}
             >
               {t.spriteSmall && <img src={t.spriteSmall} alt="" className="w-full h-14 object-contain" />}
@@ -1700,7 +1879,7 @@ function DamageCalculator({ team, moveData, ensureMove }) {
                 return (
                   <button key={i} onClick={() => setMoveIdx(i)}
                     className={`rounded-lg border px-2 py-1.5 text-left text-xs transition ${
-                      selected ? 'border-amber-500 bg-amber-500/10' : 'border-stone-800 bg-stone-900/50'
+                      selected ? 'border-[#E8557D] bg-[#E8557D]/10' : 'border-stone-800 bg-stone-900/50'
                     }`}>
                     <div className="flex items-center gap-1.5">
                       {m && <TypeBadge type={m.type} size="xs" />}
@@ -1762,7 +1941,7 @@ function DamageCalculator({ team, moveData, ensureMove }) {
         <div className="font-mono text-[10px] text-stone-500 tracking-widest mb-2">DIFENSORE</div>
         {!defender ? (
           <button onClick={() => setSearchOpen(true)}
-            className="w-full py-4 border border-dashed border-stone-700 rounded-xl text-stone-500 hover:border-amber-500/50 hover:text-amber-400 font-body text-sm">
+            className="w-full py-4 border border-dashed border-stone-700 rounded-xl text-stone-500 hover:border-[#E8557D]/50 hover:text-[#EA6D8E] font-body text-sm">
             + seleziona Pokémon difensore
           </button>
         ) : (
@@ -1799,7 +1978,7 @@ function DamageCalculator({ team, moveData, ensureMove }) {
               </div>
               <input type="range" min={1} max={100} value={hpPercent}
                 onChange={e => setHpPercent(parseInt(e.target.value))}
-                className="w-full mt-1 accent-amber-500" />
+                className="w-full mt-1 accent-[#E8557D]" />
             </div>
 
             {defender.item === 'Booster Energy' && (
@@ -1816,7 +1995,7 @@ function DamageCalculator({ team, moveData, ensureMove }) {
               </div>
             )}
 
-            <button onClick={() => setSearchOpen(true)} className="text-xs font-body text-stone-500 hover:text-amber-400">
+            <button onClick={() => setSearchOpen(true)} className="text-xs font-body text-stone-500 hover:text-[#EA6D8E]">
               cambia difensore
             </button>
           </div>
@@ -1872,7 +2051,7 @@ function DamageCalculator({ team, moveData, ensureMove }) {
           ) : (
             <>
               <div className="flex items-baseline gap-2">
-                <span className="font-display text-5xl text-amber-400">{result.min}–{result.max}</span>
+                <span className="font-display text-5xl text-[#EA6D8E]">{result.min}–{result.max}</span>
                 <span className="font-mono text-xs text-stone-500">dmg</span>
               </div>
               <div className="font-mono text-sm text-stone-300 mt-1">
@@ -1883,13 +2062,13 @@ function DamageCalculator({ team, moveData, ensureMove }) {
               <div className="mt-4 grid grid-cols-2 gap-2">
                 <div className="bg-stone-950/60 border border-stone-800 rounded-lg p-2.5">
                   <div className="font-mono text-[9px] text-stone-500 tracking-widest">OHKO</div>
-                  <div className={`font-display text-2xl ${result.ohkoPct === 100 ? 'text-red-400' : result.ohkoPct > 0 ? 'text-amber-400' : 'text-stone-500'}`}>
+                  <div className={`font-display text-2xl ${result.ohkoPct === 100 ? 'text-red-400' : result.ohkoPct > 0 ? 'text-[#EA6D8E]' : 'text-stone-500'}`}>
                     {result.ohkoPct.toFixed(1)}%
                   </div>
                 </div>
                 <div className="bg-stone-950/60 border border-stone-800 rounded-lg p-2.5">
                   <div className="font-mono text-[9px] text-stone-500 tracking-widest">2HKO</div>
-                  <div className={`font-display text-2xl ${result.thkoPct === 100 ? 'text-red-400' : result.thkoPct > 0 ? 'text-amber-400' : 'text-stone-500'}`}>
+                  <div className={`font-display text-2xl ${result.thkoPct === 100 ? 'text-red-400' : result.thkoPct > 0 ? 'text-[#EA6D8E]' : 'text-stone-500'}`}>
                     {result.thkoPct.toFixed(1)}%
                   </div>
                 </div>
@@ -1900,7 +2079,7 @@ function DamageCalculator({ team, moveData, ensureMove }) {
                 <span className={`font-mono text-xs font-medium ${
                   result.typeEff >= 2 ? 'text-emerald-400' :
                   result.typeEff === 1 ? 'text-stone-400' :
-                  result.typeEff > 0 ? 'text-amber-400' : 'text-red-400'
+                  result.typeEff > 0 ? 'text-[#EA6D8E]' : 'text-red-400'
                 }`}>×{result.typeEff}</span>
                 {result.notes.length > 0 && (
                   <span className="font-mono text-[9px] text-stone-600">· {result.notes.join(' · ')}</span>
@@ -2061,7 +2240,7 @@ function ScoreChip({ score, compact = false }) {
   if (score >= 60) color = 'text-emerald-300 bg-emerald-500/15';
   else if (score >= 20) color = 'text-emerald-400 bg-emerald-500/10';
   else if (score > -20) color = 'text-stone-300 bg-stone-700/40';
-  else if (score > -60) color = 'text-amber-400 bg-amber-500/10';
+  else if (score > -60) color = 'text-[#EA6D8E] bg-[#E8557D]/10';
   else color = 'text-red-400 bg-red-500/15';
   const sign = score > 0 ? '+' : '';
   return (
@@ -2075,7 +2254,7 @@ function ScoreChip({ score, compact = false }) {
 function MatchupDetail({ me, opp, result, onBack }) {
   return (
     <div className="space-y-3 fade-up">
-      <button onClick={onBack} className="text-xs font-body text-stone-500 hover:text-amber-400 flex items-center gap-1">
+      <button onClick={onBack} className="text-xs font-body text-stone-500 hover:text-[#EA6D8E] flex items-center gap-1">
         <ChevronLeft size={14} /> indietro
       </button>
 
@@ -2112,7 +2291,7 @@ function MatchupDetail({ me, opp, result, onBack }) {
             <div className="font-mono text-xs text-stone-300">
               {result.myHit.min}–{result.myHit.max} dmg · {result.myHit.pctMin.toFixed(0)}–{result.myHit.pctMax.toFixed(0)}% HP
             </div>
-            <div className="font-mono text-[10px] text-amber-400 mt-0.5">
+            <div className="font-mono text-[10px] text-[#EA6D8E] mt-0.5">
               OHKO {result.myHit.ohkoPct.toFixed(0)}% · 2HKO {result.myHit.thkoPct.toFixed(0)}%
             </div>
           </div>
@@ -2158,8 +2337,96 @@ function MatchupDetail({ me, opp, result, onBack }) {
 }
 
 /* ------------------------------------------------------------ */
-function MatchupSimulator({ team, opponentTeam, moveData, ensureMove, openOppSearch, onEditOpp, onRemoveOpp }) {
-  const [view, setView] = useState('leads'); // leads | matrix | detail
+/* ============================================================
+   PRESET LIBRARY — componente per caricare team avversari preimpostati
+   ============================================================ */
+function PresetLibrary({ onLoad, onClose }) {
+  const PINK = '#E8557D';
+  const [loading, setLoading] = useState(null); // id del preset in caricamento
+  const [error, setError]   = useState('');
+
+  async function handleLoad(preset) {
+    setLoading(preset.id);
+    setError('');
+    try {
+      const slots = await Promise.all(preset.mons.map(m => buildPresetSlot(m)));
+      const team6 = [...slots, ...Array(6).fill(null)].slice(0,6);
+      onLoad(team6);
+      onClose();
+    } catch (e) {
+      setError('Errore nel caricamento: ' + (e.message || 'riprova'));
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between mb-1">
+        <div className="font-mono text-[10px] tracking-widest" style={{color:`${PINK}90`}}>PRESET AVVERSARI</div>
+        <button onClick={onClose} className="font-mono text-[10px] text-stone-600 hover:text-stone-300 transition">× chiudi</button>
+      </div>
+
+      {error && (
+        <div className="font-mono text-[10px] text-red-400 bg-red-500/10 rounded-lg px-3 py-2 border border-red-500/25">{error}</div>
+      )}
+
+      <div className="space-y-2">
+        {PRESET_MATCHUPS.map(preset => (
+          <div key={preset.id}
+            className="rounded-xl overflow-hidden"
+            style={{background:'rgba(10,10,22,0.95)', border:`1px solid ${preset.color}28`}}>
+            {/* header strip */}
+            <div className="h-0.5 w-full" style={{background:`linear-gradient(90deg, ${preset.color}, transparent)`}} />
+
+            <div className="p-3 flex items-center gap-3">
+              {/* info */}
+              <div className="flex-1 min-w-0">
+                <div className="font-body text-[13px] font-semibold text-stone-100 leading-tight">{preset.name}</div>
+                <div className="font-mono text-[9px] mt-0.5 leading-tight" style={{color:`${preset.color}90`}}>{preset.desc}</div>
+
+                {/* mini Pokémon names */}
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {preset.mons.map((m, i) => (
+                    <span key={i} className="font-mono text-[8px] px-1.5 py-0.5 rounded-md" style={{background:`${preset.color}12`, color:`${preset.color}BB`, border:`1px solid ${preset.color}22`}}>
+                      {m.name.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase()).slice(0,14)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* load button */}
+              <button
+                onClick={() => handleLoad(preset)}
+                disabled={!!loading}
+                className="flex-shrink-0 px-3 py-2 rounded-lg font-mono text-[10px] font-semibold transition-all disabled:opacity-40"
+                style={{
+                  background: loading === preset.id ? `${preset.color}25` : `${preset.color}18`,
+                  border: `1px solid ${preset.color}45`,
+                  color: preset.color,
+                }}
+              >
+                {loading === preset.id
+                  ? <span className="flex items-center gap-1"><Loader2 size={10} className="animate-spin"/>carico…</span>
+                  : 'Carica →'}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <p className="font-mono text-[8px] text-stone-700 text-center pt-1">
+        I set rispecchiano spread comuni del meta · i dati vengono da PokéAPI
+      </p>
+    </div>
+  );
+}
+
+/* ============================================================
+   MATCHUP SIMULATOR
+   ============================================================ */
+function MatchupSimulator({ team, opponentTeam, moveData, ensureMove, openOppSearch, onEditOpp, onRemoveOpp, onLoadPreset }) {
+  const [view, setView] = useState('leads'); // leads | matrix | detail | presets
   const [detail, setDetail] = useState(null); // { meIdx, oppIdx, result }
   const [weather, setWeather] = useState('none');
   const [terrain, setTerrain] = useState('none');
@@ -2249,9 +2516,20 @@ function MatchupSimulator({ team, opponentTeam, moveData, ensureMove, openOppSea
     <div className="space-y-5 fade-up">
       {/* Opponent team */}
       <div>
-        <div className="flex items-baseline justify-between mb-2">
+        <div className="flex items-center justify-between mb-2">
           <div className="font-mono text-[10px] text-stone-500 tracking-widest">TEAM AVVERSARIO</div>
-          <span className="font-mono text-[10px] text-stone-600">{oppMembers.length}/6</span>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[10px] text-stone-600">{oppMembers.length}/6</span>
+            <button
+              onClick={() => setView(v => v === 'presets' ? 'leads' : 'presets')}
+              className="font-mono text-[9px] px-2 py-1 rounded-lg transition-all"
+              style={view === 'presets'
+                ? {background:'rgba(232,85,125,0.15)', border:'1px solid rgba(232,85,125,0.4)', color:'#E8557D'}
+                : {background:'rgba(15,15,28,0.9)', border:'1px solid rgba(40,40,60,0.8)', color:'#555575'}}
+            >
+              📋 preset
+            </button>
+          </div>
         </div>
         <div className="grid grid-cols-3 gap-2">
           {opponentTeam.map((slot, i) => (
@@ -2282,11 +2560,19 @@ function MatchupSimulator({ team, opponentTeam, moveData, ensureMove, openOppSea
         </div>
       </div>
 
-      {oppMembers.length < 1 ? (
+      {/* Preset library */}
+      {view === 'presets' && (
+        <PresetLibrary
+          onLoad={slots => { onLoadPreset(slots); setView('leads'); }}
+          onClose={() => setView('leads')}
+        />
+      )}
+
+      {view !== 'presets' && oppMembers.length < 1 ? (
         <div className="py-10 text-center border border-dashed border-stone-800 rounded-xl">
-          <p className="font-body text-stone-500 text-xs">Aggiungi almeno 1 Pokémon avversario per iniziare</p>
+          <p className="font-body text-stone-500 text-xs">Aggiungi avversari manualmente o carica un preset →</p>
         </div>
-      ) : (
+      ) : view !== 'presets' && (
         <>
           {/* Field conditions */}
           <div className="space-y-2">
@@ -2334,7 +2620,7 @@ function MatchupSimulator({ team, opponentTeam, moveData, ensureMove, openOppSea
                 <div className="space-y-1.5">
                   {ranking.slice(0, Math.min(4, ranking.length)).map((r, i) => (
                     <div key={r.idx} className={`flex items-center gap-2 rounded-xl p-2 ${i < 4 ? 'bg-stone-900/60 border border-stone-800' : 'bg-stone-950/40'}`}>
-                      <span className="font-display text-lg text-amber-400 w-5 text-center">{i + 1}</span>
+                      <span className="font-display text-lg text-[#EA6D8E] w-5 text-center">{i + 1}</span>
                       {r.mon.spriteSmall && <img src={r.mon.spriteSmall} alt="" className="w-10 h-10 object-contain" />}
                       <div className="flex-1 min-w-0">
                         <div className="font-body text-xs text-stone-200 truncate">{r.mon.displayName}</div>
@@ -2358,7 +2644,7 @@ function MatchupSimulator({ team, opponentTeam, moveData, ensureMove, openOppSea
                       return (
                         <div key={i} className="bg-stone-900/60 border border-stone-800 rounded-xl p-3">
                           <div className="flex items-center gap-2 mb-2">
-                            <span className={`font-display text-lg ${i === 0 ? 'text-amber-400' : 'text-stone-400'} w-5 text-center`}>{i + 1}</span>
+                            <span className={`font-display text-lg ${i === 0 ? 'text-[#EA6D8E]' : 'text-stone-400'} w-5 text-center`}>{i + 1}</span>
                             <div className="flex items-center gap-3 flex-1">
                               <div className="text-center">
                                 {a.spriteSmall && <img src={a.spriteSmall} alt="" className="w-12 h-12" />}
@@ -2439,62 +2725,108 @@ function MatchupSimulator({ team, opponentTeam, moveData, ensureMove, openOppSea
    MAIN APP
    ============================================================ */
 function App() {
-  const [team, setTeam] = useState(() => Array(6).fill(null));
-  const [opponentTeam, setOpponentTeam] = useState(() => Array(6).fill(null));
-  const [editIndex, setEditIndex] = useState(null);
-  const [editOppIndex, setEditOppIndex] = useState(null);
-  const [tab, setTab] = useState('team'); // team | calc | matchup | analysis
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchSlotIndex, setSearchSlotIndex] = useState(null);
-  const [searchTarget, setSearchTarget] = useState('own'); // 'own' | 'opp'
-  const [moveData, setMoveData] = useState({}); // name -> full move object
-  const [loaded, setLoaded] = useState(false);
+  const [teams, setTeams] = React.useState(() => [
+    { id: 'team-1', name: 'Team 1', team: Array(6).fill(null), opponentTeam: Array(6).fill(null) }
+  ]);
+  const [activeTeamId, setActiveTeamId] = React.useState('team-1');
+  const [editIndex,    setEditIndex]    = React.useState(null);
+  const [editOppIndex, setEditOppIndex] = React.useState(null);
+  const [tab,          setTab]          = React.useState('team');
+  const [searchOpen,   setSearchOpen]   = React.useState(false);
+  const [searchSlotIndex, setSearchSlotIndex] = React.useState(null);
+  const [searchTarget, setSearchTarget] = React.useState('own');
+  const [moveData,  setMoveData]  = React.useState({});
+  const [loaded,    setLoaded]    = React.useState(false);
+  const [renamingId, setRenamingId] = React.useState(null);
 
-  // Load from storage
+  const PINK = '#E8557D';
+  const CYAN = '#4AC5C5';
+
+  // ── derived active team ──
+  const activeTeam   = teams.find(t => t.id === activeTeamId) || teams[0];
+  const team         = activeTeam?.team         || Array(6).fill(null);
+  const opponentTeam = activeTeam?.opponentTeam || Array(6).fill(null);
+
+  function setTeam(v) {
+    setTeams(prev => prev.map(t => t.id === activeTeamId ? { ...t, team: v } : t));
+  }
+  function setOpponentTeam(v) {
+    setTeams(prev => prev.map(t => t.id === activeTeamId ? { ...t, opponentTeam: v } : t));
+  }
+
+  // ── team management ──
+  function createTeam() {
+    const id = 'team-' + Date.now();
+    setTeams(prev => [...prev, { id, name: `Team ${prev.length + 1}`, team: Array(6).fill(null), opponentTeam: Array(6).fill(null) }]);
+    setActiveTeamId(id);
+    setEditIndex(null); setEditOppIndex(null); setTab('team');
+  }
+  function deleteTeam(id) {
+    if (teams.length <= 1) return;
+    const next = teams.filter(t => t.id !== id);
+    setTeams(next);
+    if (activeTeamId === id) { setActiveTeamId(next[0].id); setEditIndex(null); setEditOppIndex(null); }
+  }
+  function finishRename(id, val) {
+    setTeams(prev => prev.map(t => t.id === id ? { ...t, name: val.trim() || t.name } : t));
+    setRenamingId(null);
+  }
+  function switchTeam(id) {
+    if (id === activeTeamId) return;
+    setActiveTeamId(id); setEditIndex(null); setEditOppIndex(null); setTab('team');
+  }
+
+  // ── storage: load ──
   useEffect(() => {
     (async () => {
       try {
-        const res = await window.storage.get('team');
+        const res = await window.storage.get('porygon_teams');
         if (res?.value) {
           const parsed = JSON.parse(res.value);
-          const migrated = parsed.map(s => s ? { ...s, teraType: s.teraType || s.types?.[0] || 'normal' } : null);
-          setTeam(migrated);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setTeams(parsed.map(t => ({
+              ...t,
+              team: (t.team || Array(6).fill(null)).map(s => s ? { ...s, teraType: s.teraType || s.types?.[0] || 'normal' } : null),
+              opponentTeam: (t.opponentTeam || Array(6).fill(null)).map(s => s ? { ...s, teraType: s.teraType || s.types?.[0] || 'normal' } : null),
+            })));
+            const aid = await window.storage.get('porygon_activeTeamId');
+            if (aid?.value) setActiveTeamId(aid.value);
+          }
+        } else {
+          // Migrazione da storage vecchio (singolo team)
+          const old = await window.storage.get('team');
+          const oldO = await window.storage.get('opponentTeam');
+          if (old?.value) {
+            const t = JSON.parse(old.value).map(s => s ? { ...s, teraType: s.teraType || s.types?.[0] || 'normal' } : null);
+            const o = oldO?.value ? JSON.parse(oldO.value).map(s => s ? { ...s, teraType: s.teraType || s.types?.[0] || 'normal' } : null) : Array(6).fill(null);
+            setTeams([{ id: 'team-1', name: 'Team 1', team: t, opponentTeam: o }]);
+          }
         }
-        const oppRes = await window.storage.get('opponentTeam');
-        if (oppRes?.value) {
-          const parsed = JSON.parse(oppRes.value);
-          const migrated = parsed.map(s => s ? { ...s, teraType: s.teraType || s.types?.[0] || 'normal' } : null);
-          setOpponentTeam(migrated);
-        }
-      } catch { /* empty */ }
+      } catch {}
       setLoaded(true);
     })();
   }, []);
 
-  // Persist
+  // ── storage: save ──
   useEffect(() => {
     if (!loaded) return;
     (async () => {
       try {
-        await window.storage.set('team', JSON.stringify(team));
-        await window.storage.set('opponentTeam', JSON.stringify(opponentTeam));
-      } catch { /* noop */ }
+        await window.storage.set('porygon_teams', JSON.stringify(teams));
+        await window.storage.set('porygon_activeTeamId', activeTeamId);
+      } catch {}
     })();
-  }, [team, opponentTeam, loaded]);
+  }, [teams, activeTeamId, loaded]);
 
-  // Fetch full move data for analysis + calc + matchup
+  // ── fetch move data ──
   useEffect(() => {
-    const allMoves = new Set();
-    [...team, ...opponentTeam].forEach(m => { if (m) (m.moves || []).forEach(mv => mv && allMoves.add(mv)); });
-    const missing = [...allMoves].filter(m => !(m in moveData));
-    if (missing.length === 0) return;
+    const all = new Set();
+    [...team, ...opponentTeam].forEach(m => { if (m) (m.moves || []).forEach(mv => mv && all.add(mv)); });
+    const missing = [...all].filter(m => !(m in moveData));
+    if (!missing.length) return;
     (async () => {
       const entries = await Promise.all(missing.map(async m => [m, await fetchMove(m)]));
-      setMoveData(prev => {
-        const next = { ...prev };
-        for (const [m, d] of entries) next[m] = d;
-        return next;
-      });
+      setMoveData(prev => { const next = { ...prev }; for (const [m, d] of entries) next[m] = d; return next; });
     })();
   }, [team, opponentTeam]);
 
@@ -2505,61 +2837,24 @@ function App() {
   }
 
   function openSearch(slotIndex, target = 'own') {
-    setSearchSlotIndex(slotIndex);
-    setSearchTarget(target);
-    setSearchOpen(true);
+    setSearchSlotIndex(slotIndex); setSearchTarget(target); setSearchOpen(true);
   }
-
   function addPokemon(pkm) {
-    const newSlot = {
-      ...pkm,
-      nickname: '',
-      level: 50,
-      ability: pkm.abilities[0]?.name || '',
-      item: 'None',
-      nature: 'Hardy',
-      teraType: pkm.types[0],
-      evs: { ...EMPTY_EVS },
-      ivs: { ...PERFECT_IVS },
-      moves: [null, null, null, null],
-    };
+    const newSlot = { ...pkm, nickname: '', level: 50, ability: pkm.abilities[0]?.name || '', item: 'None', nature: 'Hardy', teraType: pkm.types[0], evs: { ...EMPTY_EVS }, ivs: { ...PERFECT_IVS }, moves: [null, null, null, null] };
     const isOpp = searchTarget === 'opp';
-    const currentTeam = isOpp ? opponentTeam : team;
-    const setCurrent = isOpp ? setOpponentTeam : setTeam;
-    const idx = searchSlotIndex ?? currentTeam.findIndex(s => !s);
+    const cur = isOpp ? opponentTeam : team;
+    const set = isOpp ? setOpponentTeam : setTeam;
+    const idx = searchSlotIndex ?? cur.findIndex(s => !s);
     if (idx < 0) return;
-    const next = [...currentTeam];
-    next[idx] = newSlot;
-    setCurrent(next);
-    if (isOpp) setEditOppIndex(idx);
-    else setEditIndex(idx);
+    const next = [...cur]; next[idx] = newSlot; set(next);
+    if (isOpp) setEditOppIndex(idx); else setEditIndex(idx);
   }
+  function updateSlot(idx, p) { const n = [...team]; n[idx] = p; setTeam(n); }
+  function updateOppSlot(idx, p) { const n = [...opponentTeam]; n[idx] = p; setOpponentTeam(n); }
+  function removeSlot(idx) { const n = [...team]; n[idx] = null; setTeam(n); }
+  function removeOppSlot(idx) { const n = [...opponentTeam]; n[idx] = null; setOpponentTeam(n); }
 
-  function updateSlot(idx, patch) {
-    const next = [...team];
-    next[idx] = patch;
-    setTeam(next);
-  }
-
-  function updateOppSlot(idx, patch) {
-    const next = [...opponentTeam];
-    next[idx] = patch;
-    setOpponentTeam(next);
-  }
-
-  function removeSlot(idx) {
-    const next = [...team];
-    next[idx] = null;
-    setTeam(next);
-  }
-
-  function removeOppSlot(idx) {
-    const next = [...opponentTeam];
-    next[idx] = null;
-    setOpponentTeam(next);
-  }
-
-  const editingSlot = editIndex !== null ? team[editIndex] : null;
+  const editingSlot    = editIndex    !== null ? team[editIndex]         : null;
   const editingOppSlot = editOppIndex !== null ? opponentTeam[editOppIndex] : null;
 
   return (
@@ -2567,97 +2862,133 @@ function App() {
       <style>{FONT_STYLES}</style>
 
       <div className="relative z-10 max-w-md mx-auto px-4 pb-24 pt-6">
-        {/* Header */}
-        <header className="mb-6 flex items-end justify-between">
+
+        {/* ── Header ── */}
+        <header className="mb-5 flex items-center justify-between">
           <div>
-            <div className="font-mono text-[10px] text-amber-500/70 tracking-[0.3em]">TRAINER · v1</div>
-            <h1 className="font-display text-4xl text-stone-50 leading-none mt-1">
-              Pokémon <span className="text-amber-400">Team</span>
+            <div className="font-mono text-[9px] tracking-[0.35em] mb-1" style={{color:`${PINK}80`}}>VGC 2026 · REG M-A</div>
+            <h1 className="font-display text-[2.6rem] text-stone-50 leading-none">
+              Porygon<span style={{color:CYAN}}>IA</span>
             </h1>
           </div>
-          <Sparkles size={20} className="text-amber-500/60 mb-1" />
+          <div className="flex flex-col items-center gap-1">
+            <div className="w-10 h-10 rounded-2xl flex items-center justify-center relative overflow-hidden"
+              style={{background:`linear-gradient(135deg, ${PINK}22 0%, ${CYAN}22 100%)`, border:`1px solid ${PINK}35`}}>
+              <div className="absolute inset-0" style={{background:`linear-gradient(135deg, ${PINK}15, transparent)`}} />
+              <Sparkles size={18} style={{color:PINK, position:'relative', zIndex:1}} />
+            </div>
+          </div>
         </header>
 
-        {/* Content */}
+        {/* ── Team switcher ── */}
+        {!editingSlot && !editingOppSlot && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-3 -mx-4 px-4 mb-2" style={{scrollbarWidth:'none', WebkitOverflowScrolling:'touch'}}>
+            {teams.map(t => (
+              <div key={t.id} className="flex-shrink-0 flex items-center gap-0.5">
+                {renamingId === t.id ? (
+                  <input
+                    autoFocus
+                    defaultValue={t.name}
+                    onBlur={e => finishRename(t.id, e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') finishRename(t.id, e.currentTarget.value); if (e.key === 'Escape') setRenamingId(null); }}
+                    className="px-2 py-1 rounded-lg text-[11px] font-body bg-stone-900 text-stone-100 outline-none w-20"
+                    style={{border:`1px solid ${PINK}60`}}
+                  />
+                ) : (
+                  <button
+                    onClick={() => switchTeam(t.id)}
+                    onDoubleClick={() => setRenamingId(t.id)}
+                    title="Doppio tap per rinominare"
+                    className="px-3 py-1.5 rounded-lg text-[11px] font-body transition-all whitespace-nowrap"
+                    style={t.id === activeTeamId
+                      ? {background:`${PINK}18`, border:`1px solid ${PINK}55`, color:PINK, fontWeight:500}
+                      : {background:'rgba(18,18,28,0.9)', border:'1px solid rgba(40,40,58,0.9)', color:'#545470'}}
+                  >
+                    {t.name}
+                  </button>
+                )}
+                {t.id === activeTeamId && teams.length > 1 && renamingId !== t.id && (
+                  <button onClick={() => deleteTeam(t.id)}
+                    className="p-0.5 rounded transition-colors"
+                    style={{color:'#333348'}}
+                    onMouseEnter={e => e.currentTarget.style.color='#c04040'}
+                    onMouseLeave={e => e.currentTarget.style.color='#333348'}>
+                    <X size={10}/>
+                  </button>
+                )}
+              </div>
+            ))}
+            {teams.length < 8 && (
+              <button
+                onClick={createTeam}
+                className="flex-shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-body transition-all whitespace-nowrap"
+                style={{border:`1px dashed ${CYAN}35`, color:`${CYAN}60`}}
+                onMouseEnter={e => { e.currentTarget.style.borderColor=`${CYAN}70`; e.currentTarget.style.color=CYAN; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor=`${CYAN}35`; e.currentTarget.style.color=`${CYAN}60`; }}
+              >
+                + nuovo
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* ── Content ── */}
         {editingSlot ? (
-          <PokemonEditor
-            slot={editingSlot}
-            onChange={patch => updateSlot(editIndex, patch)}
-            onClose={() => setEditIndex(null)}
-          />
+          <PokemonEditor slot={editingSlot} onChange={p => updateSlot(editIndex, p)} onClose={() => setEditIndex(null)} />
         ) : editingOppSlot ? (
-          <PokemonEditor
-            slot={editingOppSlot}
-            onChange={patch => updateOppSlot(editOppIndex, patch)}
-            onClose={() => setEditOppIndex(null)}
-          />
+          <PokemonEditor slot={editingOppSlot} onChange={p => updateOppSlot(editOppIndex, p)} onClose={() => setEditOppIndex(null)} />
         ) : (
           <>
-            {/* Tabs */}
-            <div className="flex gap-0.5 bg-stone-900/60 border border-stone-800 rounded-xl p-1 mb-5">
-              <button
-                onClick={() => setTab('team')}
-                className={`flex-1 py-2 rounded-lg text-[11px] font-body transition ${tab === 'team' ? 'bg-stone-800 text-stone-100' : 'text-stone-500'}`}
-              >
-                <span className="inline-flex items-center gap-1"><Swords size={11} /> Team</span>
-              </button>
-              <button
-                onClick={() => setTab('calc')}
-                className={`flex-1 py-2 rounded-lg text-[11px] font-body transition ${tab === 'calc' ? 'bg-stone-800 text-stone-100' : 'text-stone-500'}`}
-              >
-                <span className="inline-flex items-center gap-1"><Calculator size={11} /> Calc</span>
-              </button>
-              <button
-                onClick={() => setTab('matchup')}
-                className={`flex-1 py-2 rounded-lg text-[11px] font-body transition ${tab === 'matchup' ? 'bg-stone-800 text-stone-100' : 'text-stone-500'}`}
-              >
-                <span className="inline-flex items-center gap-1"><Target size={11} /> Matchup</span>
-              </button>
-              <button
-                onClick={() => setTab('analysis')}
-                className={`flex-1 py-2 rounded-lg text-[11px] font-body transition ${tab === 'analysis' ? 'bg-stone-800 text-stone-100' : 'text-stone-500'}`}
-              >
-                <span className="inline-flex items-center gap-1"><Shield size={11} /> Analisi</span>
-              </button>
+            {/* ── Tabs ── */}
+            <div className="flex gap-0.5 rounded-xl p-1 mb-5"
+              style={{background:'rgba(12,12,22,0.95)', border:'1px solid rgba(38,38,58,0.9)'}}>
+              {[
+                { id:'team',     icon:<Swords size={11}/>,     label:'Team' },
+                { id:'calc',     icon:<Calculator size={11}/>, label:'Calc' },
+                { id:'matchup',  icon:<Target size={11}/>,     label:'Matchup' },
+                { id:'analysis', icon:<Shield size={11}/>,     label:'Analisi' },
+              ].map(({ id, icon, label }) => (
+                <button key={id} onClick={() => setTab(id)}
+                  className="flex-1 py-2 rounded-lg text-[11px] font-body transition-all"
+                  style={tab === id
+                    ? {background:`${PINK}18`, color:PINK, border:`1px solid ${PINK}40`, fontWeight:500}
+                    : {color:'#44445A', border:'1px solid transparent'}}>
+                  <span className="inline-flex items-center gap-1.5">{icon}{label}</span>
+                </button>
+              ))}
             </div>
 
             {tab === 'team' && (
               <div>
                 <div className="grid grid-cols-2 gap-3">
                   {team.map((slot, i) => (
-                    <TeamSlot
-                      key={i}
-                      slot={slot}
-                      index={i}
+                    <TeamSlot key={i} slot={slot} index={i}
                       onClick={() => slot ? setEditIndex(i) : openSearch(i, 'own')}
-                      onRemove={() => removeSlot(i)}
-                    />
+                      onRemove={() => removeSlot(i)} />
                   ))}
                 </div>
                 <button
                   onClick={() => openSearch(null, 'own')}
                   disabled={!team.some(s => !s)}
-                  className="w-full mt-5 bg-amber-500 hover:bg-amber-400 disabled:bg-stone-800 disabled:text-stone-600 text-stone-950 font-body font-semibold py-3 rounded-xl flex items-center justify-center gap-2"
-                >
-                  <Plus size={16} /> aggiungi Pokémon
+                  className="w-full mt-5 font-body font-semibold py-3 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-30"
+                  style={{background:team.some(s=>!s)?`linear-gradient(135deg, ${PINK}, ${PINK}CC)`:'rgba(25,25,38,0.8)', color:team.some(s=>!s)?'#fff':'rgba(80,80,100,0.7)'}}>
+                  <Plus size={16}/> aggiungi Pokémon
                 </button>
               </div>
             )}
 
             {tab === 'calc' && <DamageCalculator team={team} moveData={moveData} ensureMove={ensureMove} />}
-
             {tab === 'matchup' && (
-              <MatchupSimulator
-                team={team}
-                opponentTeam={opponentTeam}
-                moveData={moveData}
-                ensureMove={ensureMove}
+              <MatchupSimulator team={team} opponentTeam={opponentTeam} moveData={moveData} ensureMove={ensureMove}
                 openOppSearch={(idx) => openSearch(idx, 'opp')}
                 onEditOpp={(idx) => setEditOppIndex(idx)}
                 onRemoveOpp={removeOppSlot}
-              />
+                onLoadPreset={(slots) => {
+                  setOpponentTeam(slots);
+                  // pre-fetch moves for the loaded preset
+                  slots.forEach(s => s && (s.moves||[]).forEach(mv => mv && ensureMove(mv)));
+                }} />
             )}
-
             {tab === 'analysis' && <AnalysisPanel team={team} moveData={moveData} />}
           </>
         )}
@@ -2667,7 +2998,6 @@ function App() {
     </div>
   );
 }
-
     ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
 </body>
